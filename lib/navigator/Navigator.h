@@ -2,6 +2,11 @@
 #define NAVIGATOR_H
 
 #include <Arduino.h>
+#include <vector>
+
+static const int MAP_WIDTH = 100;
+static const int MAP_HEIGHT = 100;
+static const int MAX_STEPS = 200;
 
 struct Pos {
     int x;
@@ -10,33 +15,36 @@ struct Pos {
 };
 
 struct Route {
-    Pos route[200]; // tappe max
-    Pos nextHop;
+    Pos route[MAX_STEPS]; // tappe max
+    int numSteps;
 };
 
-enum NavStatus {
-    SUCCESS = 0,
-    OBSTACLE = 1,
-    FAILED = 2
+struct Node {
+    int8_t parent_i, parent_j;
+
+    float f, g, h;
 };
+
 
 class Navigator {
 
     private:
-        byte _map[100][100]; // 10cm per cell
+        byte _map[MAP_WIDTH][MAP_HEIGHT]; // 10cm per cell
         Pos _currPos;
+        Pos _destination;
+
+        std::vector<Pos> aStar(Pos start, Pos goal);
 
     public:
+        Navigator();
+
         Pos getPos() { return _currPos; }
-        NavStatus goTo(int x, int y, int dir);
-        NavStatus followPath(Route &route);
 
         Route calcRoute(int x, int y, int dir);
 
+        void setDestination(int x, int y);
         void setCurrPos(int x, int y, int dir);
-
-        void setObstacle(int x, int y);
-        void setFreeCell(int x, int y);
+        void sculpt(int x, int y, byte val);
 
 };
 

@@ -17,7 +17,7 @@ long Encoder::getPulses() {
     return _pulseCount;
 }
 
-float Encoder::getDistance() {
+float Encoder::getCurrDistance() { // cm
     float c = _wheelDiameter * PI;
     return ((float)_pulseCount / _spaces) * c;
 }

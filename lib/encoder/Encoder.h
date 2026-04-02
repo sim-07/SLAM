@@ -21,7 +21,7 @@ class Encoder {
         void reset();
         
         long getPulses();
-        float getDistance();
+        float getCurrDistance();
 };
 
 #endif
