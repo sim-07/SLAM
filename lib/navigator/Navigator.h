@@ -3,10 +3,13 @@
 
 #include <Arduino.h>
 #include <vector>
+#include <utility>
+
+typedef std::pair<int, int> Pair;
+typedef std::pair<double, std::pair<int, int>> pPair;
 
 static const int MAP_WIDTH = 100;
 static const int MAP_HEIGHT = 100;
-static const int MAX_STEPS = 200;
 
 struct Pos {
     int x;
@@ -15,14 +18,24 @@ struct Pos {
 };
 
 struct Route {
-    Pos route[MAX_STEPS]; // tappe max
+    stack<Pos> route;
     int numSteps;
 };
 
 struct Node {
     int8_t parent_i, parent_j;
 
-    float f, g, h;
+    uint16_t f, g, h;
+};
+
+enum SensorType {
+    ULTRASONIC = 0,
+    LASER = 1
+};
+
+enum CellType {
+    BLOCKED = 0,
+    FREE = 1
 };
 
 
@@ -33,7 +46,7 @@ class Navigator {
         Pos _currPos;
         Pos _destination;
 
-        std::vector<Pos> aStar(Pos start, Pos goal);
+        Route aStar(Pos start, Pos goal);
 
     public:
         Navigator();
@@ -44,7 +57,7 @@ class Navigator {
 
         void setDestination(int x, int y);
         void setCurrPos(int x, int y, int dir);
-        void sculpt(int x, int y, byte val);
+        void sculpt(int x, int y, SensorType st, CellType c);
 
 };
 
