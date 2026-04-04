@@ -10,7 +10,7 @@ void RobotMovements::init()
 }
 
 const float Kp = 10; // da calibrare
-const int UNIT = 15; // dimensioni cella in cm
+const int UNIT = 10; // dimensioni cella in cm
 
 void RobotMovements::goStraight(float dis, float power)
 {

@@ -5,6 +5,7 @@
 
 #include "Navigator.h"
 #include <stack>
+#include <map>
 
 using namespace std;
 
@@ -13,194 +14,187 @@ const int LASER_A = 20;
 const int MAX_MAP_V = 128;
 const int THRESHOLD_OBSTACLE = MAX_MAP_V - LASER_A;
 
-Navigator::Navigator() {
-    memset(_map, MAX_MAP_V, sizeof(_map));
-    _currPos = {50, 50};
+Navigator::Navigator()
+{
+    _currPos = {0, 0};
 }
 
-float Navigator::getDir(){
+float Navigator::getDir()
+{
     return _currDir;
 }
 
-void Navigator::setDir(float angle) {
+void Navigator::setDir(float angle)
+{
     _currDir = angle;
 }
 
-void Navigator::setDestination(int x, int y) {
+void Navigator::setDestination(int x, int y)
+{
     _destination = {x, y};
 }
 
-void Navigator::setCurrPos(int x, int y) {
+void Navigator::setCurrPos(int x, int y)
+{
     _currPos = {x, y};
 }
 
-void Navigator::sculpt(int x, int y, SensorType st, CellType c) {
-    // probabilità che ci sia ostacolo o libero. Ostacolo -, libero +. Inizialmente 128. Quanto toglie dipende da affidabilità sensore
+bool Navigator::isObstacle(int x, int y)
+{
+    return _obstacles.count({x, y});
+}
+
+void Navigator::addObstacle(int x, int y, SensorType st)
+{
 
     int v = 0;
-    int a = (c == BLOCKED) ? -1 : 1;
+    switch (st)
+    {
+    case ULTRASONIC:
+        v = ULTRASONIC_A;
+        break;
 
-    switch (st) {
-        case ULTRASONIC:
-            v = ULTRASONIC_A * a;
-            break;
-        
-        case LASER:
-            v = LASER_A * a;
-            break;
-        
-        default:
-            break;
+    case LASER:
+        v = LASER_A;
+        break;
+
+    default:
+        break;
     }
 
-    if (x >= 0 && x < MAP_HEIGHT && y >= 0 && y < MAP_WIDTH) {
-        int dX[] = {-1, 1, 0, 0, 0, -1, -1, 1, 1};
-        int dY[] = {0, 0, 1, -1, 0, 1, -1, 1, -1};
+    int dX[] = {-1, 1, 0, 0, 0, -1, -1, 1, 1};
+    int dY[] = {0, 0, 1, -1, 0, 1, -1, 1, -1};
 
-        int padding = (c == BLOCKED) ? 9 : 1;
-        for (int k = 0; k < padding; k++) {
-            int nRow = x + dX[k];
-            int nCol = y + dY[k];
+    int padding = 9;
+    for (int k = 0; k < padding; k++)
+    {
+        int nRow = x + dX[k];
+        int nCol = y + dY[k];
 
-            if (nRow >= 0 && nRow < MAP_HEIGHT && nCol >= 0 && nCol < MAP_WIDTH) {
-                int newVal = _map[nRow][nCol] + v; 
-                _map[nRow][nCol] = (uint8_t)constrain(newVal, 0, 255);
-            }
-        
-        }   
+        _obstacles.insert({nRow, nCol});
     }
 }
 
-Route Navigator::calcRoute(int dest_x, int dest_y) {
-    Pos pos = { dest_x, dest_y };
+Route Navigator::calcRoute(int dest_x, int dest_y)
+{
+    Pos destPos = {dest_x, dest_y};
 
-    return aStar(pos, _destination);
+    return aStar(_currPos, destPos);
 }
-
 
 ///////////////////////// A* /////////////////////////
 
-bool isValid(int row, int col)
+bool isDestination(int row, int col, Pos dest)
 {
-    return (row >= 0) && (row < MAP_HEIGHT) && (col >= 0)
-           && (col < MAP_WIDTH);
-}
-
-bool isUnBlocked(uint8_t grid[][MAP_WIDTH], int row, int col)
-{
-    return grid[row][col] >= THRESHOLD_OBSTACLE;
-}
-
-bool isDestination(int row, int col, Pair dest)
-{
-    if (row == dest.first && col == dest.second)
+    if (row == dest.x && col == dest.y)
         return true;
     else
         return false;
 }
 
-double calculateHValue(int row, int col, Pair dest)
+double calculateHValue(int row, int col, Pos dest)
 {
     return ((double)sqrt(
-        (row - dest.first) * (row - dest.first)
-        + (col - dest.second) * (col - dest.second)));
+        (row - dest.x) * (row - dest.x) + (col - dest.y) * (col - dest.y)));
 }
 
-Route tracePath(Node cellDetails[][MAP_WIDTH], Pair dest)
+Route tracePath(std::map<Pos, Node> &cellDetails, Pos dest)
 {
     Route r;
-    
+
     r.numSteps = 0;
 
-    int row = dest.first;
-    int col = dest.second;
+    int16_t row = dest.x;
+    int16_t col = dest.y;
 
     float curr_angle;
-    while (!(cellDetails[row][col].parent_i == row
-             && cellDetails[row][col].parent_j == col)) { // cella iniziale è l'unica ad avere se stessa come genitore
 
-        int nextRow = cellDetails[row][col].parent_i;
-        int nextCol = cellDetails[row][col].parent_j;
+    while (true)
+    {
+        auto it = cellDetails.find({row, col});
 
-        Pos p;
+        if (it == cellDetails.end())
+            break;
 
-        p.x = row;
-        p.y = col;
-
+        Pos p = {row, col};
         r.route.push(p);
-        
         r.numSteps++;
 
-        row = nextRow;
-        col = nextCol;
+        if (it->second.parent_i == row && it->second.parent_j == col) // la cella iniziale è l'unica ad avere i parents con le stesse proprie coordinate
+        {
+            break;
+        }
+
+        row = it->second.parent_i;
+        col = it->second.parent_j;
     }
 
     return r;
 }
 
-// Prova tutte le 8 direzioni, mette i valori in celldetails e mette la f minore in openlist da cui poi riparte dopo, così fino alla destinazione
 const uint16_t MAX_V = 65535;
-Route Navigator::aStar(Pos start, Pos goal) {
-    static Node cellDetails[MAP_WIDTH][MAP_HEIGHT];
-    static bool closedList[MAP_WIDTH][MAP_HEIGHT];
-    
-    // pulizia memoria celldetails
-    memset(closedList, false, sizeof(closedList));
-    for (int i = 0; i < MAP_WIDTH; i++) {
-        for (int j = 0; j < MAP_HEIGHT; j++) {
-            cellDetails[i][j].f = MAX_V; // Valore "infinito" per uint16_t
-            cellDetails[i][j].g = 0;
-            cellDetails[i][j].parent_i = -1;
-            cellDetails[i][j].parent_j = -1;
-        }
-    }
+Route Navigator::aStar(Pos start, Pos goal)
+{
 
     // cella di partenza
-    int row = start.x;
-    int col = start.y;
-    cellDetails[row][col] = { (int8_t)row, (int8_t)col, 0, 0, 0 };
+    int16_t currRow = start.x;
+    int16_t currCol = start.y;
 
-    set<pair<uint16_t, pair<int, int>>> openList;
-    openList.insert({0, {row, col}});
+    std::map<Pos, Node> cellDetails;              // informazioni sulle celle visitate (coordinate, g, f, h, parent)
+    set<pair<uint16_t, pair<int, int>>> openList; // celle da esplorare ordinate in base alla f
+    std::set<Pos> closedList;                     // celle esplorate
+
+    openList.insert({0, {currRow, currCol}}); // fNew, {x, y}
+    cellDetails[{currRow, currCol}] = {currRow, currCol, 0, 0, 0};
+    openList.insert({0, {currRow, currCol}});
 
     int dX[] = {-1, 1, 0, 0, -1, -1, 1, 1};
     int dY[] = {0, 0, 1, -1, 1, -1, 1, -1};
 
-    while (!openList.empty()) {
+    while (!openList.empty())
+    {
         auto p = *openList.begin();
         openList.erase(openList.begin());
 
-        row = p.second.first;
-        col = p.second.second;
-        closedList[row][col] = true;
+        currRow = p.second.first;  // x
+        currCol = p.second.second; // y
+        closedList.insert({currRow, currCol});
 
-        for (int k = 0; k < 8; k++) {
-            int nRow = row + dX[k];
-            int nCol = col + dY[k];
+        for (int k = 0; k < 8; k++)
+        {
+            // vengono controllate tutte le 8 direzioni
+            int nRow = currRow + dX[k];
+            int nCol = currCol + dY[k];
 
-            if (isValid(nRow, nCol)) {
-                if (isDestination(nRow, nCol, {goal.x, goal.y})) {
-                    cellDetails[nRow][nCol].parent_i = row;
-                    cellDetails[nRow][nCol].parent_j = col;
-                    return tracePath(cellDetails, {nRow, nCol});
-                }
-                
-                if (!closedList[nRow][nCol] && isUnBlocked(_map, nRow, nCol)) {
+            auto it = cellDetails.find({nRow, nCol});
 
-                    // Costo: 10 per i lati, 14 per diagonali (orizzontale e verticale costa 1, diagonale = radice 2 = 1.41 --> Tutto moltiplicato * 10 per farli numeri interi)
-                    uint16_t cost = (k < 4) ? 10 : 14; // primi 4 movimenti sono dritti, altri diagonali
-                    uint16_t gNew = cellDetails[row][col].g + cost;
-                    uint16_t hNew = calculateHValue(nRow, nCol, {goal.x, goal.y}) * 10;
-                    uint16_t fNew = gNew + hNew;
+            if (isDestination(nRow, nCol, {goal.x, goal.y}))
+            {
+                // se la prossima cella (nRow e nCol) è destinazione, metto i parent della prossima cella con i valori row e col della cella corrente e return
+                cellDetails[{nRow, nCol}].parent_i = currRow;
+                cellDetails[{nRow, nCol}].parent_j = currCol;
 
-                    if (cellDetails[nRow][nCol].f == MAX_V || cellDetails[nRow][nCol].f > fNew) {
-                        cellDetails[nRow][nCol].f = fNew;
-                        cellDetails[nRow][nCol].g = gNew;
-                        cellDetails[nRow][nCol].h = hNew;
-                        cellDetails[nRow][nCol].parent_i = row;
-                        cellDetails[nRow][nCol].parent_j = col;
-                        openList.insert({fNew, {nRow, nCol}});
-                    }
+                return tracePath(cellDetails, {nRow, nCol});
+            }
+
+            if (!closedList.count({nRow, nCol}) && !isObstacle(nRow, nCol))
+            {
+                // se non è la meta controllo che non sia già stato visto e che non sia un ostacolo
+                uint16_t cost = (k < 4) ? 10 : 14; // se è diagonale costerà 1.41, gli ultimi 4 k sono diagonali
+                uint16_t gNew = cellDetails[{currRow, currCol}].g + cost;
+                uint16_t hNew = calculateHValue(nRow, nCol, {goal.x, goal.y}) * 10;
+                uint16_t fNew = gNew + hNew;
+
+                if (it == cellDetails.end() || it->second.f > fNew)
+                {
+                    cellDetails[{nRow, nCol}] = {
+                        currRow,
+                        currCol,
+                        fNew,
+                        gNew,
+                        hNew};
+
+                    openList.insert({fNew, {nRow, nCol}}); // aggiungo il prossimo valore alla lista delle celle da esplorare
                 }
             }
         }

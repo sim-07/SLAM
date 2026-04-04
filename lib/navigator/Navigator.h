@@ -6,15 +6,17 @@
 #include <utility>
 #include <stack>
 
-typedef std::pair<int, int> Pair;
-typedef std::pair<double, std::pair<int, int>> pPair;
-
 static const int MAP_WIDTH = 100;
 static const int MAP_HEIGHT = 100;
 
 struct Pos {
     int x;
-    int y;
+    int y;    
+
+    bool operator<(const Pos& other) const {
+        if (x != other.x) return x < other.x;
+        return y < other.y;
+    }
 };
 
 struct Route {
@@ -23,9 +25,9 @@ struct Route {
 };
 
 struct Node {
-    int8_t parent_i, parent_j;
+    int16_t parent_i, parent_j;
 
-    uint16_t f, g, h;
+    uint16_t f, g, h; // g = dalla partenza alla cella attuale, h costo stimato da cella attuale alla destinazione, f è la somma di g e h
 };
 
 enum SensorType {
@@ -33,20 +35,16 @@ enum SensorType {
     LASER = 1
 };
 
-enum CellType {
-    BLOCKED = 0,
-    FREE = 1
-};
-
-
 class Navigator {
-
+    // matrice virtuale, salvo solo gli ostacoli in coordinate fittizie
     private:
-        uint8_t _map[MAP_WIDTH][MAP_HEIGHT]; // 15cm per cell -- TODO map virtuale, salvare solo coordinate con ostacoli in un set
+        std::set<Pos> _obstacles;
+
         Pos _currPos;
         Pos _destination;
         float _currDir;
-
+        
+        bool isObstacle(int x, int y);
         Route aStar(Pos start, Pos goal);
 
     public:
@@ -60,7 +58,7 @@ class Navigator {
         void setDir(float angle);
         void setDestination(int x, int y);
         void setCurrPos(int x, int y);
-        void sculpt(int x, int y, SensorType st, CellType c);
+        void addObstacle(int x, int y, SensorType st);
 
 };
 
