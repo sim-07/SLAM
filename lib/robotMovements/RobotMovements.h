@@ -33,14 +33,14 @@ class RobotMovements {
         {}
 
         void init();
-        void straight(float dis, float power = 150);
+        void goStraight(float dis, float power = 150);
         void turn(float angle, float power = 150);
         void stop();
 
         Encoder& getLeftEnc() { return _leftEnc; }
         Encoder& getRightEnc() { return _rightEnc; }
 
-        NavStatus followPath(Route &route);
+        NavStatus followPath(Route &route, Navigator &nav);
 
 };
 

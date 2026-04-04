@@ -15,19 +15,27 @@ const int THRESHOLD_OBSTACLE = MAX_MAP_V - LASER_A;
 
 Navigator::Navigator() {
     memset(_map, MAX_MAP_V, sizeof(_map));
-    _currPos = {0, 0, 0};
+    _currPos = {50, 50};
+}
+
+float Navigator::getDir(){
+    return _currDir;
+}
+
+void Navigator::setDir(float angle) {
+    _currDir = angle;
 }
 
 void Navigator::setDestination(int x, int y) {
     _destination = {x, y};
 }
 
-void Navigator::setCurrPos(int x, int y, int dir) {
-    _currPos = {x, y, dir};
+void Navigator::setCurrPos(int x, int y) {
+    _currPos = {x, y};
 }
 
 void Navigator::sculpt(int x, int y, SensorType st, CellType c) {
-    // probabilità che si sia ostacolo o libero. Ostacolo -, libero +. Inizialmente 128. Quanto toglie dipende da affidabilità sensore
+    // probabilità che ci sia ostacolo o libero. Ostacolo -, libero +. Inizialmente 128. Quanto toglie dipende da affidabilità sensore
 
     int v = 0;
     int a = (c == BLOCKED) ? -1 : 1;
@@ -56,15 +64,15 @@ void Navigator::sculpt(int x, int y, SensorType st, CellType c) {
 
             if (nRow >= 0 && nRow < MAP_HEIGHT && nCol >= 0 && nCol < MAP_WIDTH) {
                 int newVal = _map[nRow][nCol] + v; 
-                _map[nRow][nCol] = (byte)constrain(newVal, 0, 255);
+                _map[nRow][nCol] = (uint8_t)constrain(newVal, 0, 255);
             }
         
         }   
     }
 }
 
-Route Navigator::calcRoute(int dest_x, int dest_y, int dest_dir) {
-    Pos pos = { dest_x, dest_y, dest_dir };
+Route Navigator::calcRoute(int dest_x, int dest_y) {
+    Pos pos = { dest_x, dest_y };
 
     return aStar(pos, _destination);
 }
@@ -78,7 +86,7 @@ bool isValid(int row, int col)
            && (col < MAP_WIDTH);
 }
 
-bool isUnBlocked(byte grid[][MAP_WIDTH], int row, int col)
+bool isUnBlocked(uint8_t grid[][MAP_WIDTH], int row, int col)
 {
     return grid[row][col] >= THRESHOLD_OBSTACLE;
 }
@@ -107,25 +115,24 @@ Route tracePath(Node cellDetails[][MAP_WIDTH], Pair dest)
     int row = dest.first;
     int col = dest.second;
 
-    //stack<Pair> Path;
-
+    float curr_angle;
     while (!(cellDetails[row][col].parent_i == row
              && cellDetails[row][col].parent_j == col)) { // cella iniziale è l'unica ad avere se stessa come genitore
+
+        int nextRow = cellDetails[row][col].parent_i;
+        int nextCol = cellDetails[row][col].parent_j;
 
         Pos p;
 
         p.x = row;
         p.y = col;
-        p.dir = 0; // TODO calcolare direzione corretta
 
         r.route.push(p);
         
         r.numSteps++;
 
-        int temp_row = cellDetails[row][col].parent_i;
-        int temp_col = cellDetails[row][col].parent_j;
-        row = temp_row;
-        col = temp_col;
+        row = nextRow;
+        col = nextCol;
     }
 
     return r;

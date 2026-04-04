@@ -34,7 +34,7 @@ void Motor::setPower(int power)
 void Motor::motorStop()
 {
     int tempPower = abs(_currentPower);
-    int smoothVal = 20;
+    int smoothVal = 30;
 
     while (tempPower >= smoothVal)
     {

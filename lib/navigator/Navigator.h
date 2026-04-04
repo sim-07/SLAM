@@ -4,6 +4,7 @@
 #include <Arduino.h>
 #include <vector>
 #include <utility>
+#include <stack>
 
 typedef std::pair<int, int> Pair;
 typedef std::pair<double, std::pair<int, int>> pPair;
@@ -14,7 +15,6 @@ static const int MAP_HEIGHT = 100;
 struct Pos {
     int x;
     int y;
-    int dir;
 };
 
 struct Route {
@@ -42,9 +42,10 @@ enum CellType {
 class Navigator {
 
     private:
-        byte _map[MAP_WIDTH][MAP_HEIGHT]; // 10cm per cell
+        uint8_t _map[MAP_WIDTH][MAP_HEIGHT]; // 15cm per cell -- TODO map virtuale, salvare solo coordinate con ostacoli in un set
         Pos _currPos;
         Pos _destination;
+        float _currDir;
 
         Route aStar(Pos start, Pos goal);
 
@@ -52,11 +53,13 @@ class Navigator {
         Navigator();
 
         Pos getPos() { return _currPos; }
+        Route calcRoute(int x, int y);
 
-        Route calcRoute(int x, int y, int dir);
-
+        float getDir();
+        
+        void setDir(float angle);
         void setDestination(int x, int y);
-        void setCurrPos(int x, int y, int dir);
+        void setCurrPos(int x, int y);
         void sculpt(int x, int y, SensorType st, CellType c);
 
 };
