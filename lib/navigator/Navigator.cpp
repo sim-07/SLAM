@@ -44,6 +44,10 @@ bool Navigator::isObstacle(int x, int y)
     return _obstacles.count({x, y});
 }
 
+const std::set<Pos>& Navigator::getMap() const {
+    return _obstacles;
+}
+
 void Navigator::addObstacle(int x, int y, SensorType st)
 {
 
@@ -100,6 +104,7 @@ double calculateHValue(int row, int col, Pos dest)
 
 Route tracePath(std::map<Pos, Node> &cellDetails, Pos dest)
 {
+    // TODO ottimizzare lista ostacoli raggruppando quelli vicini
     Route r;
 
     r.numSteps = 0;

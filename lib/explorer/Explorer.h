@@ -6,7 +6,7 @@
 class Explorer {
 
     private:
-
+        void setObstacle(Pos p);
 
     public:
         void explore(Navigator nav);
