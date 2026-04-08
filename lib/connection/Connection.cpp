@@ -4,24 +4,74 @@
 #include <Navigator.h>
 #include <WiFi.h>
 #include <set>
+#include <Explorer.h>
 
-void Connection::init(const std::set<Pos> &map) {
+void Connection::handleMessage(MessType messageType, JsonVariant bodyMessage)
+{
+
+	switch (messageType)
+	{
+		case SET_TARGET:
+			if (bodyMessage["x"].is<int>() && bodyMessage["y"].is<int>())
+			{
+				_nav->setDestination(bodyMessage["x"], bodyMessage["y"]);
+				server.send(200, "text/plain", "Succeed");
+			}
+			else
+			{
+				server.send(200, "text/plain", "SET_TARGET error");
+			}
+			break;
+
+		case START_EXPLORE:
+			if (!_isExploring)
+			{
+				_exp->explore(*_nav);
+				server.send(200, "text/plain", "Succeed");
+				_isExploring = true;
+			}
+			
+			break;
+
+		case STOP_EXPLORE:
+			if (_isExploring)
+			{
+				_exp->stopExploring();
+				server.send(200, "text/plain", "Succeed");
+				_isExploring = false;
+			}
+
+			break;
+		}
+}
+
+void Connection::init(const std::set<Pos> &map, Navigator &nav, Explorer &exp)
+{
+	// TODO usare websocket
+
 	_map = &map;
-	if (!LittleFS.begin()) {
+	_nav = &nav;
+	_exp = &exp;
+
+	if (!LittleFS.begin())
+	{
 		Serial.println("LittleFS error");
 		return;
 	}
 
-	server.on("/api/getMap", [this]() { this->sendMap(); });
-	server.on("/", [this]() { this->openResource(true); });
+	server.on("/api/getMap", [this]()
+			  { this->sendMap(); });
+	server.on("/", [this]()
+			  { this->openResource(true); });
 
-	server.on("/api/listen", HTTP_POST, [this]() {
+	server.on("/api/listen", HTTP_POST, [this]()
+			  {
 		if (server.hasArg("plain")) {
 			String body = server.arg("plain");
 
 			// {
-			//     "messageType": "SET_TARGET" o "START_EXPLORE" o "STOP_EXPLORE",
-            //     "body": ".."
+			//     "messageType": "SET_TARGET" o "START_EXPLORE" o
+			//     "STOP_EXPLORE", "body": ".."
 			// }
 
 			JsonDocument doc;
@@ -32,53 +82,59 @@ void Connection::init(const std::set<Pos> &map) {
 				return;
 			}
 
-            MessType messageType = doc["messageType"];
+			MessType messageType = doc["messageType"];
+			JsonVariant bodyMessage = doc["body"];
 
-            switch (messageType) {
-                case SET_TARGET:
-                    // TODO
-                    break;
-                case START_EXPLORE:
-                    //TODO
-                    break;
-                case STOP_EXPLORE:
-                    //TODO
-                    break;
-            }
-
-			server.send(200, "text/plain", "OK");
+			handleMessage(messageType, bodyMessage);
 		} else {
 			server.send(400, "text/plain", "Body missing");
-		}
-	});
+		} });
 
-	server.onNotFound([this]() { this->openResource(false); });
+	server.onNotFound([this]()
+					  { this->openResource(false); });
 
 	server.begin();
 }
 
-void Connection::sendMap() {
-	if (_map == nullptr) {
+void Connection::sendMap()
+{
+	if (_map == nullptr)
+	{
 		server.send(500, "text/plain", "Map error");
 		return;
 	}
 
-	String jsonMap = "[";
-	for (const auto &p : *_map) {
-		jsonMap += "{\"x\":" + String(p.x) + ",\"y\":" + String(p.y) + "},";
-	}
-	if (jsonMap.endsWith(","))
-		jsonMap.remove(jsonMap.length() - 1);
-	jsonMap += "]";
+	server.setContentLength(CONTENT_LENGTH_UNKNOWN);
+	server.send(200, "application/json", "");
 
-	server.send(200, "application/json", jsonMap);
+	server.sendContent("[");
+
+	bool first = true;
+	for (const auto &p : *_map)
+	{
+		if (!first)
+		{
+			server.sendContent(",");
+		}
+
+		String point = "{\"x\":" + String(p.x) + ",\"y\":" + String(p.y) + "}";
+		server.sendContent(point);
+
+		first = false;
+	}
+
+	server.sendContent("]");
+
+	server.sendContent("");
 }
 
 void Connection::update() { server.handleClient(); }
 
-void Connection::openResource(bool isRoot) {
+void Connection::openResource(bool isRoot)
+{
 	String path = isRoot ? "/index.html" : server.uri();
-	if (LittleFS.exists(path)) {
+	if (LittleFS.exists(path))
+	{
 		String contentType = "text/plain";
 
 		if (path.endsWith(".html"))
@@ -91,7 +147,9 @@ void Connection::openResource(bool isRoot) {
 		File file = LittleFS.open(path, "r");
 		server.streamFile(file, contentType);
 		file.close();
-	} else {
+	}
+	else
+	{
 		server.send(404, "text/plain", "404 Not Found");
 	}
 }

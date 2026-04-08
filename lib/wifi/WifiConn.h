@@ -3,14 +3,15 @@
 
 #include <Arduino.h>
 
-class WifiConn {
+class WifiConn
+{
 
-  private:
+private:
 	const int _channel = 1;
 	const bool _hidden = false;
 	const int _maxConn = 1;
 
-  public:
+public:
 	void init();
 	// void update();
 };

@@ -4,17 +4,18 @@
 #include <Arduino.h>
 #include "Servo.h"
 
+static const uint8_t SERVO_PIN = 15;
+
 class ServoMotor {
 
     private:
-        const int _servoPin;
         Servo _internalServo;
+        int _currentAngle;
 
-    public:
-        ServoMotor(int servoPin) : _servoPin(servoPin) {}
-    
-        void initServo();
+    public:    
+        void init();
         void moveToAngle(int angle);
+        int getAngle() const { return _currentAngle; }
 };
 
 #endif

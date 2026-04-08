@@ -2,7 +2,6 @@
 
 LaserSensor::LaserSensor() {
     _status = false;
-    _lastDistance = 0;
 }
 
 bool LaserSensor::init() {
@@ -14,20 +13,23 @@ bool LaserSensor::init() {
         return false;
     }
 
-    
+    sensor.setROISize(6, 6);
     sensor.setDistanceMode(VL53L1X::Long);
-    sensor.setMeasurementTimingBudget(50000);
-    sensor.startContinuous(50);
+    sensor.setMeasurementTimingBudget(100000);
+    sensor.startContinuous(120);
     
     _status = true;
     return true;
 }
 
-int LaserSensor::getDistance() {
-    if (!_status) return -1;
-    
-    _lastDistance = sensor.read();
-    return _lastDistance;
+float LaserSensor::getDistance() {
+    if (!_status) return -1.0f;
+
+    uint16_t disMM = sensor.read();
+
+    if (sensor.timeoutOccurred()) return -1.0f;
+
+    return (float)disMM / 10.0f;
 }
 
 bool LaserSensor::isReady() {

@@ -8,14 +8,13 @@ class LaserSensor
 {
 private:
     VL53L1X sensor;
-    int _lastDistance;
     bool _status;
 
 public:
     LaserSensor();
 
     bool init();
-    int getDistance();
+    float getDistance();
     bool isReady();
 };
 

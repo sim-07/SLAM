@@ -3,18 +3,16 @@
 
 #include <Arduino.h>
 
-class Ultrasonic {
+static const uint8_t TRIG_PIN = 17;
+static const uint8_t ECHO_PIN = 16;
+static const uint8_t MIN_DISTANCE = 2;
+static const uint8_t MAX_DISTANCE = 400;
 
-    private:
-        const int _echoPin;
-        const int _trigPin;
-        const int _maxDistance;
-        const int _minDistance;
+class Ultrasonic
+{
 
     public:
-        Ultrasonic(int echo, int trig, int maxDistance, int minDistance) : _echoPin(echo), _trigPin(trig), _maxDistance(maxDistance), _minDistance(minDistance) {}
-    
-        void initUltrasonic();
+        void init();
         float getDistance();
 };
 

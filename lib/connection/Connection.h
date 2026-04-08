@@ -4,26 +4,31 @@
 #include <Arduino.h>
 #include <WebServer.h>
 
-enum MessType {
+enum MessType
+{
     SET_TARGET,
     START_EXPLORE,
     STOP_EXPLORE
 };
 
-class Connection {
+class Connection
+{
 
-  private:
-	WebServer server;
-
-	void openResource(bool isRoot);
+private:
+    WebServer server;
+    void handleMessage(MessType messageType, JsonVariant bodyMessage);
+    void openResource(bool isRoot);
     void sendMap();
+    Navigator *_nav;
+    Explorer *_exp;
 
-    const std::set<Pos>* _map = nullptr;
+    bool _isExploring = false;
+    const std::set<Pos> *_map = nullptr;
 
-  public:
-	Connection() : server(80) {}
-	void init(const std::set<Pos> &map);
-	void update();
+public:
+    Connection() : server(80) {}
+    void init(const std::set<Pos> &map, Navigator &nav, Explorer &exp);
+    void update();
 };
 
 #endif

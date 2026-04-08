@@ -1,11 +1,11 @@
 #include "Ultrasonic.h"
 
-void Ultrasonic::initUltrasonic()
+void Ultrasonic::init()
 {
-    pinMode(_trigPin, OUTPUT);
-    pinMode(_echoPin, INPUT);
+    pinMode(TRIG_PIN, OUTPUT);
+    pinMode(ECHO_PIN, INPUT);
 
-    digitalWrite(_trigPin, LOW);
+    digitalWrite(TRIG_PIN, LOW);
 }
 
 float Ultrasonic::getDistance()
@@ -16,17 +16,17 @@ float Ultrasonic::getDistance()
 
     for (int i = 0; i < 3; i++)
     {
-        digitalWrite(_trigPin, LOW);
+        digitalWrite(TRIG_PIN, LOW);
         delayMicroseconds(2);
 
-        digitalWrite(_trigPin, HIGH);
+        digitalWrite(TRIG_PIN, HIGH);
         delayMicroseconds(10);
-        digitalWrite(_trigPin, LOW);
+        digitalWrite(TRIG_PIN, LOW);
 
-        float tempDur = pulseIn(_echoPin, HIGH, 30000);
+        float tempDur = pulseIn(ECHO_PIN, HIGH, 30000);
         float tempDis = tempDur * 0.0343f / 2;
 
-        if (tempDis > _minDistance && tempDis < _maxDistance)
+        if (tempDis > MIN_DISTANCE && tempDis < MAX_DISTANCE)
         {
             v_scan++;
             sum_d += tempDis;

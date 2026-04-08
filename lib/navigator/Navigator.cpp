@@ -9,11 +9,6 @@
 
 using namespace std;
 
-const int ULTRASONIC_A = 10;
-const int LASER_A = 20;
-const int MAX_MAP_V = 128;
-const int THRESHOLD_OBSTACLE = MAX_MAP_V - LASER_A;
-
 Navigator::Navigator()
 {
     _currPos = {0, 0};
@@ -29,29 +24,40 @@ void Navigator::setDir(float angle)
     _currDir = angle;
 }
 
-void Navigator::setDestination(int x, int y)
+void Navigator::setDestination(int16_t x, int16_t y)
 {
     _destination = {x, y};
 }
 
-void Navigator::setCurrPos(int x, int y)
+void Navigator::setCurrPos(int16_t x, int16_t y)
 {
     _currPos = {x, y};
 }
 
-bool Navigator::isObstacle(int x, int y)
+bool Navigator::isObstacle(int16_t x, int16_t y)
 {
-    return _obstacles.count({x, y});
+    ChunkPos p = {x >> 4, y >> 4};
+
+    auto it = _obstacles.find(p);
+    if (it == _obstacles.end())
+        return false;
+
+    int16_t posCellX = x & 0x0F;
+    int16_t posCellY = y & 0x0F;
+    uint16_t cellIndex = (y * 16) + x;
+
+    return it->second->cells[cellIndex] > THRESHOLD_OBSTACLE;
 }
 
-const std::set<Pos>& Navigator::getMap() const {
+const std::map<ChunkPos, Chunk *> &Navigator::getMap() const
+{
     return _obstacles;
 }
 
-void Navigator::addObstacle(int x, int y, SensorType st)
+void Navigator::addObstacle(int16_t x, int16_t y, SensorType st)
 {
 
-    int v = 0;
+    uint16_t v = 0;
     switch (st)
     {
     case ULTRASONIC:
@@ -72,14 +78,40 @@ void Navigator::addObstacle(int x, int y, SensorType st)
     int padding = 9;
     for (int k = 0; k < padding; k++)
     {
-        int nRow = x + dX[k];
-        int nCol = y + dY[k];
+        if (dX[k] != 0 && dY[k] != 0) { // celle padding
+            v -= 5;
+        }
+        
+        int16_t nX = x + dX[k];
+        int16_t nY = y + dY[k];
 
-        _obstacles.insert({nRow, nCol});
+        int16_t chunkPosX = nX >> 4; // divisione intera per 16
+        int16_t chunkPosY = nY >> 4;
+
+        int16_t posCellX = nX & 0x0F; // % 16
+        int16_t posCellY = nY & 0x0F;
+
+        int16_t cellIndex = (posCellY * 16) + posCellX;
+
+        ChunkPos cPos = {chunkPosX, chunkPosY};
+
+        if (_obstacles.find(cPos) == _obstacles.end())
+        {
+            _obstacles[cPos] = new Chunk();
+        }
+
+        if (_obstacles[cPos]->cells[cellIndex] + v > 255)
+        {
+            _obstacles[cPos]->cells[cellIndex] = 255;
+        }
+        else
+        {
+            _obstacles[cPos]->cells[cellIndex] += v;
+        }
     }
 }
 
-Route Navigator::calcRoute(int dest_x, int dest_y)
+Route Navigator::calcRoute(int16_t dest_x, int16_t dest_y)
 {
     Pos destPos = {dest_x, dest_y};
 
@@ -104,7 +136,6 @@ double calculateHValue(int row, int col, Pos dest)
 
 Route tracePath(std::map<Pos, Node> &cellDetails, Pos dest)
 {
-    // TODO ottimizzare lista ostacoli raggruppando quelli vicini
     Route r;
 
     r.numSteps = 0;
@@ -147,14 +178,14 @@ Route Navigator::aStar(Pos start, Pos goal)
 
     std::map<Pos, Node> cellDetails;              // informazioni sulle celle visitate (coordinate, g, f, h, parent)
     set<pair<uint16_t, pair<int, int>>> openList; // celle da esplorare ordinate in base alla f
-    std::set<Pos> closedList;                     // celle esplorate
+    std::set<Pos> closedList;                     // celle già esplorate
 
     openList.insert({0, {currRow, currCol}}); // fNew, {x, y}
     cellDetails[{currRow, currCol}] = {currRow, currCol, 0, 0, 0};
     openList.insert({0, {currRow, currCol}});
 
-    int dX[] = {-1, 1, 0, 0, -1, -1, 1, 1};
-    int dY[] = {0, 0, 1, -1, 1, -1, 1, -1};
+    uint8_t dX[] = {-1, 1, 0, 0, -1, -1, 1, 1};
+    uint8_t dY[] = {0, 0, 1, -1, 1, -1, 1, -1};
 
     while (!openList.empty())
     {
@@ -168,8 +199,8 @@ Route Navigator::aStar(Pos start, Pos goal)
         for (int k = 0; k < 8; k++)
         {
             // vengono controllate tutte le 8 direzioni
-            int nRow = currRow + dX[k];
-            int nCol = currCol + dY[k];
+            int16_t nRow = currRow + dX[k];
+            int16_t nCol = currCol + dY[k];
 
             auto it = cellDetails.find({nRow, nCol});
 

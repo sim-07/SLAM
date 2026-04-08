@@ -1,13 +1,21 @@
 #include "ServoMotor.h"
 
-void ServoMotor::initServo() {
-    _internalServo.attach(_servoPin);
+void ServoMotor::init() {
+    _internalServo.attach(SERVO_PIN);
     
-    _internalServo.write(90);
+    moveToAngle(5);
 }
 
 void ServoMotor::moveToAngle(int angle) {
-    angle = constrain(angle, 0, 180);
+    angle = constrain(angle, 5, 175);
 
-    _internalServo.write(angle);
+    int step = (angle > _currentAngle) ? 1 : -1;
+
+    while (_currentAngle != angle) {
+        _currentAngle += step;
+        _internalServo.write(_currentAngle);
+
+        delay(10);
+    }
+    
 }
