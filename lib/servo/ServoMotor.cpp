@@ -7,7 +7,7 @@ void ServoMotor::init() {
 }
 
 void ServoMotor::moveToAngle(int angle) {
-    angle = constrain(angle, 5, 175);
+    angle = constrain(angle, MIN_ANGLE, MAX_ANGLE);
 
     int step = (angle > _currentAngle) ? 1 : -1;
 
@@ -18,4 +18,9 @@ void ServoMotor::moveToAngle(int angle) {
         delay(10);
     }
     
+}
+
+void ServoMotor::moveToAngleFast(int angle) {
+    angle = constrain(angle, MIN_ANGLE, MAX_ANGLE);
+    _internalServo.write(_currentAngle);
 }

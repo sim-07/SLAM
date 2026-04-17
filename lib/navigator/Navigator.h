@@ -6,6 +6,7 @@
 #include <utility>
 #include <vector>
 #include <map>
+#include <memory>
 
 static const uint8_t MAP_WIDTH = 100;
 static const uint8_t MAP_HEIGHT = 100;
@@ -13,24 +14,15 @@ static const uint8_t CHUNK_DIM = 256;
 static const uint8_t CHUNK_WIDTH = sqrt(CHUNK_DIM);
 static const uint8_t ULTRASONIC_A = 10;
 static const uint8_t LASER_A = 20;
-static const uint8_t N_MAP_V = 128;
-static const uint8_t THRESHOLD_OBSTACLE = N_MAP_V - LASER_A - ULTRASONIC_A;
+static const uint8_t BLANK_A = 20;
+static const uint8_t DEFAULT_VAL = 128;
+static const uint8_t THRESHOLD_OBSTACLE = DEFAULT_VAL - LASER_A;
 
 struct Pos
 {
 	int16_t x, y;
 
-	bool operator<(const Pos& other) const {
-        if (x != other.x) return x < other.x;
-        return y < other.y;
-    }
-};
-
-struct ChunkPos
-{
-	int16_t x, y;
-
-	bool operator<(const ChunkPos &other) const
+	bool operator<(const Pos &other) const
 	{
 		if (x != other.x)
 			return x < other.x;
@@ -38,14 +30,12 @@ struct ChunkPos
 	}
 };
 
-struct Chunk
-{
-	uint8_t cells[CHUNK_DIM];
+struct Chunk {
+    uint8_t cells[256]; // TODO: ogni cella ne continene 2. Doppie celle con la stessa memoria. 
 
-	Chunk()
-	{
-		memset(cells, N_MAP_V, CHUNK_DIM);
-	}
+    Chunk() {
+        memset(cells, DEFAULT_VAL, sizeof(cells));
+    }
 };
 
 struct Route
@@ -68,13 +58,14 @@ class Navigator
 {
 	// matrice virtuale, salvo solo gli ostacoli in coordinate immaginarie
 private:
-	std::map<ChunkPos, Chunk *> _obstacles;
+	std::map<Pos, Chunk> _map;
 
 	Pos _currPos;
 	Pos _destination;
 	float _currDir;
 
-	bool isObstacle(int16_t x, int16_t y);
+	void createBlanks(int16_t targetX, int16_t targetY);
+	bool isFree(int16_t x, int16_t y);
 	Route aStar(Pos start, Pos goal);
 
 public:
@@ -88,15 +79,17 @@ public:
 
 	Pos getPos() { return _currPos; }
 	Route calcRoute(int16_t x, int16_t y);
+	double calcDistanceBetween(Pos start, Pos dest);
+	int16_t getChunkIndex(int16_t x, int16_t y);
+	Pos getChunkPos(int16_t x, int16_t y);
 
-	const std::map<ChunkPos, Chunk *> &Navigator::getMap() const;
+	const std::map<Pos, Chunk> &Navigator::getMap() const;
 	float getDir();
 
 	void setDir(float angle);
 	void setDestination(int16_t x, int16_t y);
-
 	void setCurrPos(int16_t x, int16_t y);
-	void addObstacle(int16_t x, int16_t y, SensorType st);
+	void sculpt(int16_t targetX, int16_t targetY, SensorType st);
 };
 
 #endif

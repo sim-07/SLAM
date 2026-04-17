@@ -15,7 +15,7 @@ void Connection::handleMessage(MessType messageType, JsonVariant bodyMessage)
 			if (bodyMessage["x"].is<int>() && bodyMessage["y"].is<int>())
 			{
 				_nav->setDestination(bodyMessage["x"], bodyMessage["y"]);
-				server.send(200, "text/plain", "Succeed");
+				server.send(200, "text/plain", "Received");
 			}
 			else
 			{
@@ -27,7 +27,7 @@ void Connection::handleMessage(MessType messageType, JsonVariant bodyMessage)
 			if (!_isExploring)
 			{
 				_exp->explore(*_nav);
-				server.send(200, "text/plain", "Succeed");
+				server.send(200, "text/plain", "Received");
 				_isExploring = true;
 			}
 			
@@ -37,7 +37,7 @@ void Connection::handleMessage(MessType messageType, JsonVariant bodyMessage)
 			if (_isExploring)
 			{
 				_exp->stopExploring();
-				server.send(200, "text/plain", "Succeed");
+				server.send(200, "text/plain", "Received");
 				_isExploring = false;
 			}
 

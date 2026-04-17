@@ -34,27 +34,39 @@ void Navigator::setCurrPos(int16_t x, int16_t y)
     _currPos = {x, y};
 }
 
-bool Navigator::isObstacle(int16_t x, int16_t y)
+bool Navigator::isFree(int16_t x, int16_t y)
 {
-    ChunkPos p = {x >> 4, y >> 4};
+    Pos p = getChunkPos(x, y);
+    auto it = _map.find(p);
 
-    auto it = _obstacles.find(p);
-    if (it == _obstacles.end())
+    if (it == _map.end()) {
         return false;
+    }
 
-    int16_t posCellX = x & 0x0F;
-    int16_t posCellY = y & 0x0F;
-    uint16_t cellIndex = (y * 16) + x;
+    int16_t cellIndex = getChunkIndex(x, y);
 
-    return it->second->cells[cellIndex] > THRESHOLD_OBSTACLE;
+    return (it->second.cells[cellIndex] < THRESHOLD_OBSTACLE);
 }
 
-const std::map<ChunkPos, Chunk *> &Navigator::getMap() const
+const std::map<Pos, Chunk> &Navigator::getMap() const
 {
-    return _obstacles;
+    return _map;
 }
 
-void Navigator::addObstacle(int16_t x, int16_t y, SensorType st)
+Pos Navigator::getChunkPos(int16_t x, int16_t y)
+{
+    return {x >> 4, y >> 4};
+}
+
+int16_t Navigator::getChunkIndex(int16_t x, int16_t y)
+{
+    int16_t posCellX = x & 0x0F; // % 16
+    int16_t posCellY = y & 0x0F;
+
+    return (posCellY * CHUNK_WIDTH) + posCellX;
+}
+
+void Navigator::sculpt(int16_t targetX, int16_t targetY, SensorType st)
 {
 
     uint16_t v = 0;
@@ -72,41 +84,29 @@ void Navigator::addObstacle(int16_t x, int16_t y, SensorType st)
         break;
     }
 
+    createBlanks(targetX, targetY);
+
     int dX[] = {-1, 1, 0, 0, 0, -1, -1, 1, 1};
     int dY[] = {0, 0, 1, -1, 0, 1, -1, 1, -1};
 
     int padding = 9;
     for (int k = 0; k < padding; k++)
     {
-        if (dX[k] != 0 && dY[k] != 0) { // celle padding
-            v -= 5;
-        }
-        
-        int16_t nX = x + dX[k];
-        int16_t nY = y + dY[k];
+        int16_t nX = targetX + dX[k];
+        int16_t nY = targetY + dY[k];
 
-        int16_t chunkPosX = nX >> 4; // divisione intera per 16
-        int16_t chunkPosY = nY >> 4;
+        Pos cPos = getChunkPos(nX, nY);
+        int16_t cellIndex = getChunkIndex(nX, nY);
 
-        int16_t posCellX = nX & 0x0F; // % 16
-        int16_t posCellY = nY & 0x0F;
+        Chunk &currChunk = _map[cPos];
 
-        int16_t cellIndex = (posCellY * 16) + posCellX;
-
-        ChunkPos cPos = {chunkPosX, chunkPosY};
-
-        if (_obstacles.find(cPos) == _obstacles.end())
+        if (currChunk.cells[cellIndex] + v > 255)
         {
-            _obstacles[cPos] = new Chunk();
-        }
-
-        if (_obstacles[cPos]->cells[cellIndex] + v > 255)
-        {
-            _obstacles[cPos]->cells[cellIndex] = 255;
+            currChunk.cells[cellIndex] = 255;
         }
         else
         {
-            _obstacles[cPos]->cells[cellIndex] += v;
+            currChunk.cells[cellIndex] += v;
         }
     }
 }
@@ -118,9 +118,77 @@ Route Navigator::calcRoute(int16_t dest_x, int16_t dest_y)
     return aStar(_currPos, destPos);
 }
 
+// Bresenham
+void Navigator::createBlanks(int16_t targetX, int16_t targetY)
+{
+    Pos chunkCurrPos = getChunkPos(getPos().x, getPos().y);
+    Pos chunkDestPos = getChunkPos(targetX, targetY);
+    int16_t cellIndex = getChunkIndex(targetX, targetY);
+
+    int16_t x0 = getPos().x;
+    int16_t y0 = getPos().y;
+    int16_t x1 = targetX;
+    int16_t y1 = targetY;
+
+    // delta x e y
+    int16_t dX = std::abs(x1 - x0);
+    int16_t dY = -std::abs(y1 - y0);
+
+    // direzione destinazione
+    int16_t sx = (x0 < x1) ? 1 : -1;
+    int16_t sy = (y0 < y1) ? 1 : -1;
+
+    // err serve per decidere in quale direzione muoversi
+    int16_t err = dX + dY;
+
+    Pos lastPos = {0, 0};
+    Chunk *currChunk = nullptr;
+
+    while (true)
+    {
+        // esco prima della destinazione, non voglio resettare l'ultimo chunk
+        if (x0 == x1 && y0 == y1)
+            break;
+
+        Pos cPos = getChunkPos(x0, y0);
+
+        if (currChunk == nullptr || cPos.x != lastPos.x || cPos.y != lastPos.y)
+        {
+            // riprendo il chunk dal map solo se è cambiato o è nullptr (nel caso in cui coordinate fossero effettivamente 0, 0)
+            currChunk = &_map[cPos];
+            lastPos = cPos;
+        }
+
+        int16_t cellIndex = getChunkIndex(x0, y0);
+
+        if (currChunk->cells[cellIndex] < BLANK_A)
+        {
+            currChunk->cells[cellIndex] = 0;
+        }
+        else
+        {
+            currChunk->cells[cellIndex] -= BLANK_A;
+        }
+
+        int e2 = 2 * err;
+
+        if (e2 >= dY)
+        {
+            err += dY;
+            x0 += sx;
+        }
+
+        if (e2 <= dX)
+        {
+            err += dX;
+            y0 += sy;
+        }
+    }
+}
+
 ///////////////////////// A* /////////////////////////
 
-bool isDestination(int row, int col, Pos dest)
+bool isDestination(int16_t row, int16_t col, Pos dest)
 {
     if (row == dest.x && col == dest.y)
         return true;
@@ -128,10 +196,10 @@ bool isDestination(int row, int col, Pos dest)
         return false;
 }
 
-double calculateHValue(int row, int col, Pos dest)
+double Navigator::calcDistanceBetween(Pos start, Pos dest)
 {
     return ((double)sqrt(
-        (row - dest.x) * (row - dest.x) + (col - dest.y) * (col - dest.y)));
+        (start.x - dest.x) * (start.x - dest.x) + (start.x - dest.y) * (start.y - dest.y)));
 }
 
 Route tracePath(std::map<Pos, Node> &cellDetails, Pos dest)
@@ -213,12 +281,12 @@ Route Navigator::aStar(Pos start, Pos goal)
                 return tracePath(cellDetails, {nRow, nCol});
             }
 
-            if (!closedList.count({nRow, nCol}) && !isObstacle(nRow, nCol))
+            if (!closedList.count({nRow, nCol}) && isFree(nRow, nCol))
             {
                 // se non è la meta controllo che non sia già stato visto e che non sia un ostacolo
                 uint16_t cost = (k < 4) ? 10 : 14; // se è diagonale costerà 1.41, gli ultimi 4 k sono diagonali
                 uint16_t gNew = cellDetails[{currRow, currCol}].g + cost;
-                uint16_t hNew = calculateHValue(nRow, nCol, {goal.x, goal.y}) * 10;
+                uint16_t hNew = calcDistanceBetween({nRow, nCol}, {goal.x, goal.y}) * 10;
                 uint16_t fNew = gNew + hNew;
 
                 if (it == cellDetails.end() || it->second.f > fNew)
