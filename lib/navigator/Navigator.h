@@ -8,15 +8,7 @@
 #include <map>
 #include <memory>
 
-static const uint8_t MAP_WIDTH = 100;
-static const uint8_t MAP_HEIGHT = 100;
-static const uint8_t CHUNK_DIM = 256;
-static const uint8_t CHUNK_WIDTH = sqrt(CHUNK_DIM);
-static const uint8_t ULTRASONIC_A = 10;
-static const uint8_t LASER_A = 20;
-static const uint8_t BLANK_A = 20;
 static const uint8_t DEFAULT_VAL = 128;
-static const uint8_t THRESHOLD_OBSTACLE = DEFAULT_VAL - LASER_A;
 
 struct Pos
 {
@@ -74,16 +66,24 @@ public:
 		ULTRASONIC = 0,
 		LASER = 1
 	};
+	static const uint8_t CELL_CM = 10;
+	static const uint16_t CHUNK_DIM = 256;
+	static const uint8_t CHUNK_WIDTH = 16;
+	static const uint8_t ULTRASONIC_A = 10;
+	static const uint8_t LASER_A = 20;
+	static const uint8_t BLANK_A = 20;
+	static const uint8_t THRESHOLD_OBSTACLE = DEFAULT_VAL - LASER_A;
+
 
 	Navigator();
 
 	Pos getPos() { return _currPos; }
 	Route calcRoute(int16_t x, int16_t y);
 	double calcDistanceBetween(Pos start, Pos dest);
-	int16_t getChunkIndex(int16_t x, int16_t y);
-	Pos getChunkPos(int16_t x, int16_t y);
+	static int16_t getPosIndex(int16_t x, int16_t y);
+	static Pos getChunkPos(int16_t x, int16_t y);
 
-	const std::map<Pos, Chunk> &Navigator::getMap() const;
+	const std::map<Pos, Chunk> &getMap() const;
 	float getDir();
 
 	void setDir(float angle);

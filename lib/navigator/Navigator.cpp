@@ -43,7 +43,7 @@ bool Navigator::isFree(int16_t x, int16_t y)
         return false;
     }
 
-    int16_t cellIndex = getChunkIndex(x, y);
+    int16_t cellIndex = getPosIndex(x, y);
 
     return (it->second.cells[cellIndex] < THRESHOLD_OBSTACLE);
 }
@@ -58,7 +58,7 @@ Pos Navigator::getChunkPos(int16_t x, int16_t y)
     return {x >> 4, y >> 4};
 }
 
-int16_t Navigator::getChunkIndex(int16_t x, int16_t y)
+int16_t Navigator::getPosIndex(int16_t x, int16_t y)
 {
     int16_t posCellX = x & 0x0F; // % 16
     int16_t posCellY = y & 0x0F;
@@ -96,7 +96,7 @@ void Navigator::sculpt(int16_t targetX, int16_t targetY, SensorType st)
         int16_t nY = targetY + dY[k];
 
         Pos cPos = getChunkPos(nX, nY);
-        int16_t cellIndex = getChunkIndex(nX, nY);
+        int16_t cellIndex = getPosIndex(nX, nY);
 
         Chunk &currChunk = _map[cPos];
 
@@ -121,9 +121,10 @@ Route Navigator::calcRoute(int16_t dest_x, int16_t dest_y)
 // Bresenham
 void Navigator::createBlanks(int16_t targetX, int16_t targetY)
 {
+    // TODO potrebbe essere necessario mettere un padding anche agli spazi liberi
     Pos chunkCurrPos = getChunkPos(getPos().x, getPos().y);
     Pos chunkDestPos = getChunkPos(targetX, targetY);
-    int16_t cellIndex = getChunkIndex(targetX, targetY);
+    int16_t cellIndex = getPosIndex(targetX, targetY);
 
     int16_t x0 = getPos().x;
     int16_t y0 = getPos().y;
@@ -159,7 +160,7 @@ void Navigator::createBlanks(int16_t targetX, int16_t targetY)
             lastPos = cPos;
         }
 
-        int16_t cellIndex = getChunkIndex(x0, y0);
+        int16_t cellIndex = getPosIndex(x0, y0);
 
         if (currChunk->cells[cellIndex] < BLANK_A)
         {
