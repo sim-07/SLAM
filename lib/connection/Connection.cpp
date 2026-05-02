@@ -37,7 +37,7 @@ void Connection::handleMessage(MessType messageType, JsonVariant bodyMessage)
 			if (_isExploring)
 			{
 				_exp->stopExploring();
-				server.send(200, "text/plain", "Received");
+				server.send(200, "text/plain", "Received");	
 				_isExploring = false;
 			}
 
@@ -45,11 +45,11 @@ void Connection::handleMessage(MessType messageType, JsonVariant bodyMessage)
 		}
 }
 
-void Connection::init(const std::set<Pos> &map, Navigator &nav, Explorer &exp)
+void Connection::init(Navigator &nav, Explorer &exp)
 {
 	// TODO usare websocket
 
-	_map = &map;
+	_map = &nav.getMap();
 	_nav = &nav;
 	_exp = &exp;
 
@@ -96,36 +96,36 @@ void Connection::init(const std::set<Pos> &map, Navigator &nav, Explorer &exp)
 	server.begin();
 }
 
-void Connection::sendMap()
-{
-	if (_map == nullptr)
-	{
-		server.send(500, "text/plain", "Map error");
-		return;
-	}
+void Connection::sendMap() {
+    if (_map == nullptr) return;
 
-	server.setContentLength(CONTENT_LENGTH_UNKNOWN);
-	server.send(200, "application/json", "");
+    server.setContentLength(CONTENT_LENGTH_UNKNOWN);
+    server.send(200, "application/json", "");
+    server.sendContent("[");
 
-	server.sendContent("[");
+    bool first = true;
+    for (const auto& pair : *_map) {
+        const Pos& chunkPos = pair.first;
+        const Chunk& chunk = pair.second;
 
-	bool first = true;
-	for (const auto &p : *_map)
-	{
-		if (!first)
-		{
-			server.sendContent(",");
-		}
+        for (int i = 0; i < 256; i++) {
+            uint8_t cellValue = chunk.cells[i];
 
-		String point = "{\"x\":" + String(p.x) + ",\"y\":" + String(p.y) + "}";
-		server.sendContent(point);
+            if (cellValue != DEFAULT_VAL) {
+                if (!first) server.sendContent(",");
 
-		first = false;
-	}
+                int16_t globalX = (chunkPos.x * 16) + (i % 16);
+                int16_t globalY = (chunkPos.y * 16) + (i / 16);
 
-	server.sendContent("]");
-
-	server.sendContent("");
+                char buffer[48];
+                snprintf(buffer, sizeof(buffer), "{\"x\":%d,\"y\":%d,\"v\":%d}", globalX, globalY, cellValue);
+                server.sendContent(buffer);
+                
+                first = false;
+            }
+        }
+    }
+    server.sendContent("]");
 }
 
 void Connection::update() { server.handleClient(); }

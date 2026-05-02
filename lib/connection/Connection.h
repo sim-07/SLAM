@@ -3,6 +3,9 @@
 
 #include <Arduino.h>
 #include <WebServer.h>
+#include <map>
+#include <set>
+#include "Navigator.h"
 
 enum MessType
 {
@@ -19,15 +22,15 @@ private:
     void handleMessage(MessType messageType, JsonVariant bodyMessage);
     void openResource(bool isRoot);
     void sendMap();
+    const std::map<Pos, Chunk>* _map = nullptr;
     Navigator *_nav;
     Explorer *_exp;
 
     bool _isExploring = false;
-    const std::set<Pos> *_map = nullptr;
 
 public:
     Connection() : server(80) {}
-    void init(const std::set<Pos> &map, Navigator &nav, Explorer &exp);
+    void init(Navigator &nav, Explorer &exp);
     void update();
 };
 

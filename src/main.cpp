@@ -3,6 +3,8 @@
 #include "RobotMovements.h"
 #include "Explorer.h"
 #include "Navigator.h"
+#include <WifiConn.h>
+#include <Connection.h>
 
 void leftTick();
 void rightTick();
@@ -11,6 +13,8 @@ void initRobot();
 RobotMovements robotMov;
 Navigator nav;
 Explorer exp;
+WifiConn wifi;
+Connection conn;
 
 void setup() {
     Serial.begin(115200);
@@ -25,11 +29,12 @@ void loop() {
 }
 
 void setup1() {
-    // TODO wifi
+    wifi.init();
+    conn.init(nav, exp);
 }
 
 void loop1() {
-    // TODO wifi
+    conn.update();
 }
 
 

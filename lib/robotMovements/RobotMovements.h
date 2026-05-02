@@ -28,8 +28,8 @@ class RobotMovements {
         RobotMovements()
             : _leftMotor(6, 7, 8),
               _rightMotor(9, 10, 11),
-              _leftEnc(2),
-              _rightEnc(3)
+              _leftEnc(20),
+              _rightEnc(21)
         {}
 
         void init();

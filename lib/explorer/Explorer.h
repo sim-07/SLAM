@@ -16,7 +16,7 @@ class Explorer {
     private:
         void searchObstacles();
         void scan();
-        void findBorder();
+        Route findBorder();
         Pos calcCoordinates(Pos currPos, float dis, int servoAngle);
         
         ServoMotor _servo;

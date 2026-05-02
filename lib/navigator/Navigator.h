@@ -8,7 +8,7 @@
 #include <map>
 #include <memory>
 
-static const uint8_t DEFAULT_VAL = 128;
+inline constexpr uint8_t DEFAULT_VAL = 128;
 
 struct Pos
 {
@@ -33,7 +33,7 @@ struct Chunk {
 struct Route
 {
 	std::stack<Pos> route;
-	int numSteps;
+	int numSteps = -1;
 };
 
 struct Node
