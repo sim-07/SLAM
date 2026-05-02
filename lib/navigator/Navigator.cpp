@@ -253,8 +253,8 @@ Route Navigator::aStar(Pos start, Pos goal)
     cellDetails[{currRow, currCol}] = {currRow, currCol, 0, 0, 0};
     openList.insert({0, {currRow, currCol}});
 
-    uint8_t dX[] = {-1, 1, 0, 0, -1, -1, 1, 1};
-    uint8_t dY[] = {0, 0, 1, -1, 1, -1, 1, -1};
+    int8_t dX[] = {-1, 1, 0, 0, -1, -1, 1, 1};
+    int8_t dY[] = {0, 0, 1, -1, 1, -1, 1, -1};
 
     while (!openList.empty())
     {

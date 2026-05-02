@@ -12,7 +12,7 @@ void initRobot();
 
 RobotMovements robotMov;
 Navigator nav;
-Explorer exp;
+Explorer explorer;
 WifiConn wifi;
 Connection conn;
 
@@ -30,7 +30,7 @@ void loop() {
 
 void setup1() {
     wifi.init();
-    conn.init(nav, exp);
+    conn.init(nav, explorer);
 }
 
 void loop1() {

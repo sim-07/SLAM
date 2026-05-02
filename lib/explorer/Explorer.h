@@ -27,6 +27,7 @@ class Explorer {
 
         std::set<Pos> _toExplore;
         volatile bool _scanning = false;
+        bool _isExploring;
 
     public:
         void explore(Navigator &nav);

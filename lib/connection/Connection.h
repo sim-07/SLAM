@@ -3,9 +3,12 @@
 
 #include <Arduino.h>
 #include <WebServer.h>
+#include <ArduinoJson.h>
 #include <map>
 #include <set>
 #include "Navigator.h"
+
+class Explorer;
 
 enum MessType
 {
@@ -23,8 +26,8 @@ private:
     void openResource(bool isRoot);
     void sendMap();
     const std::map<Pos, Chunk>* _map = nullptr;
-    Navigator *_nav;
-    Explorer *_exp;
+    Navigator *_nav = nullptr;
+    Explorer *_exp = nullptr;
 
     bool _isExploring = false;
 

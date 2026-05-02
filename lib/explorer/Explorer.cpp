@@ -96,8 +96,8 @@ Route Explorer::findBorder()
 
     const auto& map = _nav->getMap();    
 
-    uint8_t dX[] = {-1, 1, 0, 0, -1, -1, 1, 1};
-    uint8_t dY[] = {0, 0, 1, -1, 1, -1, 1, -1};
+    int8_t dX[] = {-1, 1, 0, 0, -1, -1, 1, 1};
+    int8_t dY[] = {0, 0, 1, -1, 1, -1, 1, -1};
 
     mapOpenList.push_front({ currX, currY }); // Inserisco come primo valore la posizione corrente
     mapClosedList.insert({ currX, currY });
@@ -174,4 +174,8 @@ Route Explorer::findBorder()
     Route emptyRoute;
     return emptyRoute;
 
+}
+
+void Explorer::stopExploring() {
+    _isExploring = false;
 }
