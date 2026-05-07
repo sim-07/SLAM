@@ -49,7 +49,10 @@ void Connection::init(Navigator &nav, Explorer &exp)
 {
 	// TODO usare websocket
 
+    mutex_enter_blocking(&mapMutex);
 	_map = &nav.getMap();
+	mutex_exit(&mapMutex);
+
 	_nav = &nav;
 	_exp = &exp;
 
@@ -64,14 +67,14 @@ void Connection::init(Navigator &nav, Explorer &exp)
 	server.on("/", [this]()
 			  { this->openResource(true); });
 
-	server.on("/api/listen", HTTP_POST, [this]()
+	server.on("/api/sendMessage", HTTP_POST, [this]()
 			  {
 		if (server.hasArg("plain")) {
 			String body = server.arg("plain");
 
 			// {
-			//     "messageType": "SET_TARGET" o "START_EXPLORE" o
-			//     "STOP_EXPLORE", "body": ".."
+			//     "messageType": "SET_TARGET" o "START_EXPLORE" o "STOP_EXPLORE", 
+			//	   "body": ".."
 			// }
 
 			JsonDocument doc;
@@ -97,35 +100,55 @@ void Connection::init(Navigator &nav, Explorer &exp)
 }
 
 void Connection::sendMap() {
-    if (_map == nullptr) return;
 
-    server.setContentLength(CONTENT_LENGTH_UNKNOWN);
-    server.send(200, "application/json", "");
-    server.sendContent("[");
+    mutex_enter_blocking(&mapMutex);
+	if (_map == nullptr) return;
+	
 
-    bool first = true;
-    for (const auto& pair : *_map) {
-        const Pos& chunkPos = pair.first;
-        const Chunk& chunk = pair.second;
+	server.setContentLength(CONTENT_LENGTH_UNKNOWN);
+    server.send(200, "application/octet-stream", "");
 
-        for (int i = 0; i < 256; i++) {
-            uint8_t cellValue = chunk.cells[i];
 
-            if (cellValue != DEFAULT_VAL) {
-                if (!first) server.sendContent(",");
+	for (const auto& c : *_map) {
+        // Coordinate del Chunk: 4 byte, 2 per x e 2 per y
+        int16_t coords[2] = {c.first.x, c.first.y};
+        server.sendContent((const char*)coords, sizeof(coords)); // invio contenuto binario dell'array coords. Char perché .sendContent accetta solo char, altrimenti sarebbe uguale
 
-                int16_t globalX = (chunkPos.x * 16) + (i % 16);
-                int16_t globalY = (chunkPos.y * 16) + (i / 16);
-
-                char buffer[48];
-                snprintf(buffer, sizeof(buffer), "{\"x\":%d,\"y\":%d,\"v\":%d}", globalX, globalY, cellValue);
-                server.sendContent(buffer);
-                
-                first = false;
-            }
-        }
+        // Array di celle inviato in binario
+        server.sendContent((const char*)c.second.cells, 256);
     }
-    server.sendContent("]");
+
+	mutex_exit(&mapMutex);
+
+    // if (_map == nullptr) return;
+
+    // server.setContentLength(CONTENT_LENGTH_UNKNOWN);
+    // server.send(200, "application/json", "");
+    // server.sendContent("[");
+
+    // bool first = true;
+    // for (const auto& pair : *_map) {
+    //     const Pos& chunkPos = pair.first;
+    //     const Chunk& chunk = pair.second;
+
+    //     for (int i = 0; i < 256; i++) {
+    //         uint8_t cellValue = chunk.cells[i];
+
+    //         if (cellValue != DEFAULT_VAL) {
+    //             if (!first) server.sendContent(",");
+
+    //             int16_t globalX = (chunkPos.x * 16) + (i % 16);
+    //             int16_t globalY = (chunkPos.y * 16) + (i / 16);
+
+    //             char buffer[48];
+    //             snprintf(buffer, sizeof(buffer), "{\"x\":%d,\"y\":%d,\"v\":%d}", globalX, globalY, cellValue);
+    //             server.sendContent(buffer);
+                
+    //             first = false;
+    //         }
+    //     }
+    // }
+    // server.sendContent("]");
 }
 
 void Connection::update() { server.handleClient(); }

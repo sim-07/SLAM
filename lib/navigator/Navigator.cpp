@@ -9,9 +9,12 @@
 
 using namespace std;
 
+mutex_t mapMutex;
+
 Navigator::Navigator()
 {
     _currPos = {0, 0};
+    mutex_init(&mapMutex);
 }
 
 float Navigator::getDir()
@@ -37,15 +40,22 @@ void Navigator::setCurrPos(int16_t x, int16_t y)
 bool Navigator::isFree(int16_t x, int16_t y)
 {
     Pos p = getChunkPos(x, y);
+
+    mutex_enter_blocking(&mapMutex);
+
     auto it = _map.find(p);
 
     if (it == _map.end()) {
+        mutex_exit(&mapMutex);
         return false;
     }
 
     int16_t cellIndex = getPosIndex(x, y);
+    bool free = it->second.cells[cellIndex] < THRESHOLD_OBSTACLE;
 
-    return (it->second.cells[cellIndex] < THRESHOLD_OBSTACLE);
+    return free;
+
+    mutex_exit(&mapMutex);
 }
 
 const std::map<Pos, Chunk> &Navigator::getMap() const
@@ -84,12 +94,16 @@ void Navigator::sculpt(int16_t targetX, int16_t targetY, SensorType st)
         break;
     }
 
+    mutex_enter_blocking(&mapMutex);
+
     createBlanks(targetX, targetY);
 
     int dX[] = {-1, 1, 0, 0, 0, -1, -1, 1, 1};
     int dY[] = {0, 0, 1, -1, 0, 1, -1, 1, -1};
-
     int padding = 9;
+
+    
+
     for (int k = 0; k < padding; k++)
     {
         int16_t nX = targetX + dX[k];
@@ -109,6 +123,8 @@ void Navigator::sculpt(int16_t targetX, int16_t targetY, SensorType st)
             currChunk.cells[cellIndex] += v;
         }
     }
+
+    mutex_exit(&mapMutex);
 }
 
 Route Navigator::calcRoute(int16_t dest_x, int16_t dest_y)

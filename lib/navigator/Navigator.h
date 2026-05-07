@@ -7,8 +7,11 @@
 #include <vector>
 #include <map>
 #include <memory>
+#include "pico/mutex.h"
 
 inline constexpr uint8_t DEFAULT_VAL = 128;
+
+extern mutex_t mapMutex;
 
 struct Pos
 {
