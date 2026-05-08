@@ -6,50 +6,11 @@
 #include <set>
 #include <Explorer.h>
 
-void Connection::handleMessage(MessType messageType, JsonVariant bodyMessage)
-{
-
-	switch (messageType)
-	{
-		case SET_TARGET:
-			if (bodyMessage["x"].is<int>() && bodyMessage["y"].is<int>())
-			{
-				_nav->setDestination(bodyMessage["x"], bodyMessage["y"]);
-				server.send(200, "text/plain", "Received");
-			}
-			else
-			{
-				server.send(200, "text/plain", "SET_TARGET error");
-			}
-			break;
-
-		case START_EXPLORE:
-			if (!_isExploring)
-			{
-				_exp->explore(*_nav);
-				server.send(200, "text/plain", "Received");
-				_isExploring = true;
-			}
-			
-			break;
-
-		case STOP_EXPLORE:
-			if (_isExploring)
-			{
-				_exp->stopExploring();
-				server.send(200, "text/plain", "Received");	
-				_isExploring = false;
-			}
-
-			break;
-		}
-}
-
 void Connection::init(Navigator &nav, Explorer &exp)
 {
 	// TODO usare websocket
 
-    mutex_enter_blocking(&mapMutex);
+	mutex_enter_blocking(&mapMutex);
 	_map = &nav.getMap();
 	mutex_exit(&mapMutex);
 
@@ -99,56 +60,77 @@ void Connection::init(Navigator &nav, Explorer &exp)
 	server.begin();
 }
 
-void Connection::sendMap() {
+void Connection::handleMessage(MessType messageType, JsonVariant bodyMessage)
+{
 
-    mutex_enter_blocking(&mapMutex);
-	if (_map == nullptr) return;
-	
+	switch (messageType)
+	{
+	case SET_TARGET:
+		if (bodyMessage["x"].is<int>() && bodyMessage["y"].is<int>())
+		{
+			_nav->setDestination(bodyMessage["x"], bodyMessage["y"]);
+			server.send(200, "text/plain", "Received");
+		}
+		else
+		{
+			server.send(200, "text/plain", "SET_TARGET error");
+		}
+		break;
+
+	case START_EXPLORE:
+		if (!_isExploring)
+		{
+			_exp->explore(*_nav);
+			server.send(200, "text/plain", "Received");
+			_isExploring = true;
+		}
+
+		break;
+
+	case STOP_EXPLORE:
+		if (_isExploring)
+		{
+			_exp->stopExploring();
+			server.send(200, "text/plain", "Received");
+			_isExploring = false;
+		}
+
+		break;
+	}
+}
+
+void Connection::sendMap()
+{
 
 	server.setContentLength(CONTENT_LENGTH_UNKNOWN);
-    server.send(200, "application/octet-stream", "");
+	server.send(200, "application/octet-stream", "");
 
-
-	for (const auto& c : *_map) {
-        // Coordinate del Chunk: 4 byte, 2 per x e 2 per y
-        int16_t coords[2] = {c.first.x, c.first.y};
-        server.sendContent((const char*)coords, sizeof(coords)); // invio contenuto binario dell'array coords. Char perché .sendContent accetta solo char, altrimenti sarebbe uguale
-
-        // Array di celle inviato in binario
-        server.sendContent((const char*)c.second.cells, 256);
-    }
-
+	std::vector<Pos> positions;
+	mutex_enter_blocking(&mapMutex);
+	for (const auto &pair : *_map)
+	{
+		positions.push_back(pair.first);
+	}
 	mutex_exit(&mapMutex);
 
-    // if (_map == nullptr) return;
+	uint8_t tempCells[256];
+	for (const auto &p : positions)
+	{
+		mutex_enter_blocking(&mapMutex);
 
-    // server.setContentLength(CONTENT_LENGTH_UNKNOWN);
-    // server.send(200, "application/json", "");
-    // server.sendContent("[");
+		auto it = _map->find(p); 
+        if (it != _map->end()) {
+            memcpy(tempCells, it->second.cells, 256);
+            mutex_exit(&mapMutex);
+        } else {
+            mutex_exit(&mapMutex);
+            continue; 
+        }
 
-    // bool first = true;
-    // for (const auto& pair : *_map) {
-    //     const Pos& chunkPos = pair.first;
-    //     const Chunk& chunk = pair.second;
-
-    //     for (int i = 0; i < 256; i++) {
-    //         uint8_t cellValue = chunk.cells[i];
-
-    //         if (cellValue != DEFAULT_VAL) {
-    //             if (!first) server.sendContent(",");
-
-    //             int16_t globalX = (chunkPos.x * 16) + (i % 16);
-    //             int16_t globalY = (chunkPos.y * 16) + (i / 16);
-
-    //             char buffer[48];
-    //             snprintf(buffer, sizeof(buffer), "{\"x\":%d,\"y\":%d,\"v\":%d}", globalX, globalY, cellValue);
-    //             server.sendContent(buffer);
-                
-    //             first = false;
-    //         }
-    //     }
-    // }
-    // server.sendContent("]");
+		int16_t coords[2] = {p.x, p.y};
+		server.sendContent((const char *)coords, sizeof(coords)); // Coordinate del Chunk: 4 byte, 2 per x e 2 per y
+		server.sendContent((const char *)tempCells, 256);		  // invio contenuto binario dell'array coords. Char perché .sendContent accetta solo char, altrimenti sarebbe uguale
+	}
 }
 
 void Connection::update() { server.handleClient(); }

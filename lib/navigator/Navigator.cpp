@@ -102,8 +102,6 @@ void Navigator::sculpt(int16_t targetX, int16_t targetY, SensorType st)
     int dY[] = {0, 0, 1, -1, 0, 1, -1, 1, -1};
     int padding = 9;
 
-    
-
     for (int k = 0; k < padding; k++)
     {
         int16_t nX = targetX + dX[k];

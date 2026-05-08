@@ -1,16 +1,54 @@
 <html>
-    <head>
 
-    </head>
+<head>
 
-    <body>
+</head>
 
-        <canvas>
+<body>
 
-        </canvas>
+    <canvas id="map" width="500" height="400" style="border:1px solid #000;"></canvas>
 
-        <script>
+    <script>
+        window.onload = (event) => {
+            receiveMap();
+        };
 
-</script>
-    </body>
+        const map = new Map();
+
+        async function receiveMap() {
+            try {
+                const response = await fetch('/api/getMap');
+                const buffer = await response.arrayBuffer(); // Tutto il binario ricevuto
+                const view = new DataView(buffer);
+
+                let offset = 0;
+                while (offset < buffer.byteLength) {
+                    // Primi 4 byte sono per le coordinate
+                    const chunkX = view.getInt16(offset, true);
+                    const chunkY = view.getInt16(offset + 2, true);
+                    offset += 4;
+
+                    // 256 byte successivi per i valori delle celle
+                    const cells = new Uint8Array(buffer, offset, 256);
+                    offset += 256;
+
+                    map.set(`${chunkX}, ${chunkY}`, cells);
+
+                }
+
+                drawMap();
+            } catch(error) {
+                console.error("Connection error: ", error);
+            } finally {
+                setTimeout(receiveMap, 500);
+            }
+
+        }
+
+        function drawMap() {
+            // TODO calcolare offset, scala, coordinate massime e minime 
+        }
+    </script>
+</body>
+
 </html>
