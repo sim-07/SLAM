@@ -12,9 +12,9 @@ class Explorer;
 
 enum MessType
 {
-    SET_TARGET,
-    START_EXPLORE,
-    STOP_EXPLORE
+    SET_TARGET = 0,
+    START_EXPLORE = 1,
+    STOP_EXPLORE = 2
 };
 
 class Connection

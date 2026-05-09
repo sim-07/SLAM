@@ -6,9 +6,17 @@
 
 <body>
 
-    <canvas id="map" width="500" height="400" style="border:1px solid #000;"></canvas>
+    <button onclick="sendMessage(START_EXPLORE)">START EXPLORING</button>
+    <button onclick="sendMessage(STOP_EXPLORE)">STOP EXPLORING</button>
+
+
+    <canvas id="map" width="500" height="500" style="border:1px solid #000;"></canvas>
 
     <script>
+        const SET_TARGET = 0;
+        const START_EXPLORE = 1;
+        const STOP_EXPLORE = 2;
+
         window.onload = (event) => {
             receiveMap();
         };
@@ -37,17 +45,113 @@
                 }
 
                 drawMap();
-            } catch(error) {
+            } catch (error) {
                 console.error("Connection error: ", error);
             } finally {
-                setTimeout(receiveMap, 500);
+                setTimeout(receiveMap, 500); // Aggiorna 500ms dopo aver finito di ricevere
             }
+        }
 
+        async function sendMessage(messType, body = {}) {
+            try {
+                const res = await fetch('/api/sendMessage', {
+                    method: "POST",
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        messageType: messType,
+                        body: body
+                    })
+                });
+
+                const result = await res.text();
+                console.log("Response: ", result);
+            } catch (error) {
+                console.error("Error sending message: ", error)
+            }
         }
 
         function drawMap() {
-            // TODO calcolare offset, scala, coordinate massime e minime 
+            // Trovare coordinate minime e massime
+            // Calcolare la scala
+            // Calcolare centro geometrico della mappa e arrotondare per avere numeri interi
+            // Calcolare centro geometrico canvas e arrotondare per avere numeri interi
+            // Trovare differenza x e y tra i centri e sommare quei valori a tutte le coordinate della mappa
+            // Ora che ho le coordinate uso la scala per decidere le dimensioni di ogni cella e le disegno (e ribatare la y per vederlo nel verso corretto)
+
+            const canvas = document.getElementById('map');
+            const ctx = canvas.getContext("2d");
+            const cw = canvas.width;
+            const ch = canvas.height;
+
+            ctx.clearRect(0, 0, cw, ch);
+            ctx.fillStyle = "#222";
+            ctx.fillRect(0, 0, cw, ch);
+
+            let minChunkX = Infinity, maxChunkX = -Infinity;
+            let minChunkY = Infinity, maxChunkY = -Infinity;
+
+            for (let [c, cells] of map) {
+                const [chunkX, chunkY] = c.split(", ").map(Number);
+
+                if (chunkX > maxChunkX) {
+                    maxChunkX = chunkX;
+                }
+                if (chunkX < minChunkX) {
+                    minChunkX = chunkX;
+                }
+
+                if (chunkY > maxChunkY) {
+                    maxChunkY = chunkY;
+                }
+                if (chunkY < minChunkY) {
+                    minChunkY = chunkY;
+                }
+            }
+
+            let deltaX = (maxChunkX - minChunkX) + 1;
+            let deltaY = (maxChunkY - minChunkY) + 1;
+
+            let scaleChunk = Math.min(cw / deltaX, ch / deltaY);
+
+            let centerMapX = deltaX / 2 + minChunkX;
+            let centerMapY = deltaY / 2 + minChunkY;
+
+            let centerCanvasX = cw / 2;
+            let centerCanvasY = ch / 2;
+
+            for (let [c, cells] of map) {
+                const [chunkX, chunkY] = c.split(", ").map(Number);
+
+                // Trovo quanto dista il chunk corrente dal centro della mappa, moltiplico per la scala per trovare la dimensione in pixel e poi sommo il centro del canvas per centrare la mappa nel canvas
+                // offests corrispondono alle coordinate canvas del primo pixel in alto a sinistra di ogni chunk
+                let offsetX = (chunkX - centerMapX) * scaleChunk + centerCanvasX;
+                let offsetY = centerCanvasY - (chunkY + 1 - centerMapY) * scaleChunk; // Nel canvas la y maggiore verso il basso, il contrario della logica usata nella mappa
+
+                let cellDim = scaleChunk / 16;
+
+                for (let i = 0; i < 16; i++) { // righe (Y)
+                    for (let j = 0; j < 16; j++) { // colonne (X)
+
+                        let cellIndex = i * 16 + j;
+
+                        let coordX = j * cellDim + offsetX;
+                        let coordY = i * cellDim + offsetY;
+
+                        ctx.fillStyle = getColor(cells[cellIndex]);
+                        ctx.fillRect(coordX, coordY, cellDim, cellDim);
+                    }
+                }
+
+            }
         }
+
+        function getColor(val) {
+            let grad = val.toString(16).padStart(2, '0');
+            return `#${grad}${grad}${grad}`;
+        }
+
     </script>
 </body>
 
