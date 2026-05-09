@@ -14,13 +14,26 @@ enum NavStatus {
     FAILED = 2
 };
 
+enum RbState {
+    IDLE_RB,
+    FOLLOWING,
+    COMPLETED_ROUTE
+};
+
 class RobotMovements {
     private:
+        Navigator *_nav;
+
         Motor _leftMotor;
         Motor _rightMotor;
 
         Encoder _leftEnc;
         Encoder _rightEnc;
+
+        RbState _currentState = IDLE_RB;
+
+        Route* _currentRoute = nullptr;
+        int _indexRoute = 0;
 
         const float _wheelDistance = 10.0;
 
@@ -32,15 +45,18 @@ class RobotMovements {
               _rightEnc(21)
         {}
 
-        void init();
+        void init(Navigator *n);
         void goStraight(float dis, float power = 150);
         void turn(float angle, float power = 150);
         void stop();
+        void setCurrentState(RbState currState);
+        void update();
+        void setRoute(Route &route);
 
         Encoder& getLeftEnc() { return _leftEnc; }
         Encoder& getRightEnc() { return _rightEnc; }
 
-        NavStatus followPath(Route &route, Navigator &nav);
+        NavStatus followPath();
 
 };
 

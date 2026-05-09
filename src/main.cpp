@@ -15,6 +15,9 @@ Navigator nav;
 Explorer explorer;
 WifiConn wifi;
 Connection conn;
+ServoMotor servo;
+LaserSensor ls;
+Ultrasonic ultrasonic;
 
 void setup() {
     Serial.begin(115200);
@@ -25,7 +28,12 @@ void setup() {
 }
 
 void loop() {
+    if (explorer._isExploring) {
+        explorer.update();
+    }
 
+    robotMov.update();
+    
 }
 
 void setup1() {
@@ -48,7 +56,13 @@ void rightTick() {
 
 void initRobot() {
     
-    robotMov.init(); 
+    robotMov.init(&nav); 
     robotMov.getLeftEnc().init(leftTick);
     robotMov.getRightEnc().init(rightTick);
+    
+    servo.init();
+
+    ls.init();
+
+    ultrasonic.init();
 }

@@ -35,7 +35,7 @@ struct Chunk {
 
 struct Route
 {
-	std::stack<Pos> route;
+	std::vector<Pos> route;
 	int numSteps = -1;
 };
 
@@ -76,7 +76,6 @@ public:
 	static const uint8_t LASER_A = 20;
 	static const uint8_t BLANK_A = 20;
 	static const uint8_t THRESHOLD_OBSTACLE = DEFAULT_VAL - LASER_A;
-
 
 	Navigator();
 

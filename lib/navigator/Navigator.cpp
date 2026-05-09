@@ -236,7 +236,7 @@ Route tracePath(std::map<Pos, Node> &cellDetails, Pos dest)
             break;
 
         Pos p = {row, col};
-        r.route.push(p);
+        r.route.push_back(p);
         r.numSteps++;
 
         if (it->second.parent_i == row && it->second.parent_j == col) // la cella iniziale è l'unica ad avere i parents con le stesse proprie coordinate

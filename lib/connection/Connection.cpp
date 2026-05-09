@@ -80,9 +80,8 @@ void Connection::handleMessage(MessType messageType, JsonVariant bodyMessage)
 	case START_EXPLORE:
 		if (!_isExploring)
 		{
-			_exp->explore(*_nav);
+			_exp->setCurrentState(START_EXPLORING);
 			server.send(200, "text/plain", "Received");
-			_isExploring = true;
 		}
 
 		break;
@@ -90,9 +89,8 @@ void Connection::handleMessage(MessType messageType, JsonVariant bodyMessage)
 	case STOP_EXPLORE:
 		if (_isExploring)
 		{
-			_exp->stopExploring();
+			_exp->setCurrentState(COMPLETED);
 			server.send(200, "text/plain", "Received");
-			_isExploring = false;
 		}
 
 		break;

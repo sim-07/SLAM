@@ -1,34 +1,62 @@
 #include "Explorer.h"
 #include "Navigator.h"
 
-void Explorer::explore(Navigator &nav)
+void Explorer::init(Navigator *n, RobotMovements *r, ServoMotor *s, LaserSensor *l, Ultrasonic *u)
 {
-    _nav = &nav;
-    _servo.init();
-    _ultrasonic.init();
-    _laser.init();
+    _nav = n;
+    _rb = r;
+    _servo = s;
+    _laser = l;
+    _ultrasonic = u;
 
-    Pos firstPos = _nav->getPos();
+}
 
-    scan();
-    _rb.turn(180);
-    scan();
+void Explorer::setCurrentState(ExpState currState)
+{
+    _currentState = currState;
+}
 
-    bool expCompleted = false;
-    while (!expCompleted)
+void Explorer::update()
+{
+    switch (_currentState)
     {
-        Route routeFrontier = findBorder();
-        if (routeFrontier.numSteps > 0)
-        {
-            _rb.followPath(routeFrontier, *_nav);
+        case START_EXPLORING:
+            _firstPos = _nav->getPos();
+            _isExploring = true;
+            _currentState = SCAN;
+            break;
+
+        case SCAN:
             scan();
-        }
-        else
+            _currentState = MOVE_TO_FRONTIER;
+            break;
+
+        case MOVE_TO_FRONTIER:
         {
-            expCompleted = true;
-            Route rHome = _nav->calcRoute(firstPos.x, firstPos.y);
-            _rb.followPath(rHome, *_nav);
+            Route routeFrontier = findBorder();
+            if (routeFrontier.numSteps > 0)
+            {
+                _rb->setRoute(routeFrontier);
+                _rb->setCurrentState(FOLLOWING);
+                _currentState = SCAN;
+            }
+            else
+            {
+                _isExploring = false;
+                Route rHome = _nav->calcRoute(_firstPos.x, _firstPos.y);
+                _currentState = COMPLETED;
+                _rb->setRoute(rHome);
+                _rb->setCurrentState(FOLLOWING);
+            }
         }
+        break;
+
+        case COMPLETED:
+            _rb->stop();
+            break;
+
+        default:
+            break;
     }
 }
 
@@ -47,15 +75,15 @@ Pos Explorer::calcCoordinates(Pos currPos, float dis, int servoAngle)
 void Explorer::scan()
 {
 
-    if (_servo.getAngle() != ServoMotor::MIN_ANGLE)
+    if (_servo->getAngle() != ServoMotor::MIN_ANGLE)
     {
-        _servo.moveToAngleFast(ServoMotor::MIN_ANGLE);
+        _servo->moveToAngleFast(ServoMotor::MIN_ANGLE);
         delay(200);
     }
 
     for (int a = ServoMotor::MIN_ANGLE; a <= ServoMotor::MAX_ANGLE; a += SCAN_PRECISION)
     {
-        _servo.moveToAngle(a);
+        _servo->moveToAngle(a);
         searchObstacles();
         delay(30);
     }
@@ -65,20 +93,20 @@ void Explorer::searchObstacles()
 {
     float laserDis = -1;
     float ultrasonicDis = -1;
-    int servoAngle = _servo.getAngle();
+    int servoAngle = _servo->getAngle();
     int robotAngle = _nav->getDir();
     int totAngle = servoAngle + robotAngle;
 
     Pos p = _nav->getPos();
 
-    if (_laser.isReady())
+    if (_laser->isReady())
     {
-        laserDis = _laser.getDistance();
+        laserDis = _laser->getDistance();
         Pos c = calcCoordinates(p, laserDis, totAngle);
         _nav->sculpt(c.x, c.y, Navigator::LASER);
     }
 
-    ultrasonicDis = _ultrasonic.getDistance();
+    ultrasonicDis = _ultrasonic->getDistance();
     Pos c = calcCoordinates(p, ultrasonicDis, totAngle);
     _nav->sculpt(c.x, c.y, Navigator::ULTRASONIC);
 }
@@ -206,9 +234,4 @@ Route Explorer::findBorder()
 
     Route emptyRoute;
     return emptyRoute;
-}
-
-void Explorer::stopExploring()
-{
-    _isExploring = false;
 }

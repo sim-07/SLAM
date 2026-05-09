@@ -11,28 +11,45 @@
 
 static const uint8_t SCAN_PRECISION = 5; // ogni quanti gradi scansiona
 
-class Explorer {
+enum ExpState
+{
+    IDLE,
+    START_EXPLORING,
+    SCAN,
+    MOVE_TO_FRONTIER,
+    COMPLETED
+};
 
-    private:
-        void searchObstacles();
-        void scan();
-        Route findBorder();
-        Pos calcCoordinates(Pos currPos, float dis, int servoAngle);
-        
-        ServoMotor _servo;
-        LaserSensor _laser;
-        Ultrasonic _ultrasonic;
-        Navigator* _nav;
-        RobotMovements _rb;
+class Explorer
+{
 
-        std::set<Pos> _toExplore;
-        volatile bool _scanning = false;
-        bool _isExploring;
+private:
+    void searchObstacles();
+    void scan();
+    Route findBorder();
+    Pos calcCoordinates(Pos currPos, float dis, int servoAngle);
 
-    public:
-        void explore(Navigator &nav);
-        void stopExploring();
+    Pos _firstPos;
 
+    Navigator *_nav;
+    RobotMovements *_rb;
+    ServoMotor *_servo;
+    LaserSensor *_laser;
+    Ultrasonic *_ultrasonic;
+
+    ExpState _currentState = IDLE;
+
+    std::set<Pos> _toExplore;
+    volatile bool _scanning = false;
+    
+public:
+    void init(Navigator *n, RobotMovements *r, ServoMotor *s, LaserSensor *l, Ultrasonic *u);
+    void explore(Navigator &nav);
+    void stopExploring();
+    void update();
+    void setCurrentState(ExpState currState);
+
+    bool _isExploring;
 };
 
 #endif
