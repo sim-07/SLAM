@@ -22,8 +22,17 @@ void RobotMovements::update()
         followPath();
         break;
 
-    case COMPLETED_ROUTE:
+    case MOVING_STRAIGHT:
+        goStraight();
+        break;
 
+    case TURNING:
+        turn();
+        break;
+
+    case COMPLETED_ROUTE:
+        stop();
+        _currIndexRoute = 0;
         break;
 
     default:
@@ -41,19 +50,15 @@ void RobotMovements::setCurrentState(RbState currState)
     _currentState = currState;
 }
 
-void RobotMovements::goStraight(float dis, float power)
+void RobotMovements::goStraight()
 {
 
-    _leftEnc.reset();
-    _rightEnc.reset();
-
-    float avg = 0;
-    while (avg < abs(dis))
+    if (_avgStraight < abs(_targetDis))
     {
         float dL = abs(_leftEnc.getCurrDistance());
         float dR = abs(_rightEnc.getCurrDistance());
 
-        avg = (dL + dR) / 2.0;
+        _avgStraight = (dL + dR) / 2.0;
 
         float error = dL - dR;
 
@@ -61,19 +66,23 @@ void RobotMovements::goStraight(float dis, float power)
         {
             float corr = error * Kp;
 
-            _leftMotor.setPower(power - corr);
-            _rightMotor.setPower(power + corr);
+            _leftMotor.setPower(MOTOR_POWER - corr);
+            _rightMotor.setPower(MOTOR_POWER + corr);
         }
         else
         {
-            _leftMotor.setPower(power);
-            _rightMotor.setPower(power);
+            _leftMotor.setPower(MOTOR_POWER);
+            _rightMotor.setPower(MOTOR_POWER);
         }
-
-        delay(10);
     }
+    else
+    {
 
-    stop();
+        _targetDis = 0;
+        _avgStraight = 0;
+        _nav->setCurrPos(_currentRoute->route[_currIndexRoute].x, _currentRoute->route[_currIndexRoute].y);
+        _currentState = FOLLOWING;
+    }
 }
 
 void RobotMovements::stop()
@@ -82,24 +91,20 @@ void RobotMovements::stop()
     _rightMotor.motorStop();
 }
 
-void RobotMovements::turn(float angle, float power)
-{ // angle > 0 --> right
-
+void RobotMovements::turn()
+{
+    // angle > 0 --> destra
     // TODO giroscopio
 
-    _leftEnc.reset();
-    _rightEnc.reset();
+    float turnDis = abs((_wheelDistance * PI * _targetAngle) / 360); // totale distanza che le ruote devono percorrere
+    float dir = (_targetAngle > 0) ? 1.0 : -1.0;
 
-    float turnDis = abs((_wheelDistance * PI * angle) / 360); // totale distanza che le ruote devono percorrere
-    float dir = (angle > 0) ? 1.0 : -1.0;
-    float avg = 0;
-
-    while (avg < turnDis)
+    if (_avgTurn < turnDis)
     {
         float abs_dis_l = abs(_leftEnc.getCurrDistance());
         float abs_dis_r = abs(_rightEnc.getCurrDistance());
 
-        avg = (abs_dis_l + abs_dis_r) / 2;
+        _avgTurn = (abs_dis_l + abs_dis_r) / 2;
 
         float error = abs_dis_l - abs_dis_r;
 
@@ -107,29 +112,45 @@ void RobotMovements::turn(float angle, float power)
         {
             float corr = error * Kp;
 
-            _leftMotor.setPower((power - corr) * dir);
-            _rightMotor.setPower((power + corr) * -dir);
+            _leftMotor.setPower((MOTOR_POWER - corr) * dir);
+            _rightMotor.setPower((MOTOR_POWER + corr) * -dir);
         }
         else
         {
-            _leftMotor.setPower(power * dir);
-            _rightMotor.setPower(power * -dir);
+            _leftMotor.setPower(MOTOR_POWER * dir);
+            _rightMotor.setPower(MOTOR_POWER * -dir);
         }
-
-        delay(10);
     }
-
-    stop();
+    else
+    {
+        _targetAngle = 0;
+        _avgTurn = 0;
+        _currentState = FOLLOWING;
+    }
 }
 
-NavStatus RobotMovements::followPath()
+void RobotMovements::followPath()
 {
 
-    Pos target = _currentRoute->route[_indexRoute];
+    if (_currentRoute->route.size() > _currIndexRoute)
+    {
+        _targetCell = _currentRoute->route[_currIndexRoute];
+    } else {
+        _currentState = COMPLETED_ROUTE;
+        return;
+    }
+    
     Pos currPos = _nav->getPos();
     float currDir = _nav->getDir();
 
-    float absAngle = atan2(target.y - currPos.y, target.x - currPos.x) * 180.0 / PI;
+
+    if (_targetCell.x == currPos.x && _targetCell.y == currPos.y)
+    {
+        _currIndexRoute++;
+        return;
+    }
+
+    float absAngle = atan2(_targetCell.y - currPos.y, _targetCell.x - currPos.x) * 180.0 / PI;
     float turnAngle = absAngle - currDir;
 
     if (turnAngle > 180)
@@ -137,14 +158,52 @@ NavStatus RobotMovements::followPath()
     if (turnAngle < -180)
         turnAngle += 360;
 
-    if (abs(turnAngle) > 1.0)
+    if (abs(turnAngle) > 0.2)
     {
         stop();
-        turn(turnAngle); // TODO renderlo non bloccante
+        _leftEnc.reset();
+        _rightEnc.reset();
+        _avgTurn = 0;
+        _targetAngle = turnAngle;
+        _currentState = TURNING;
         _nav->setDir(absAngle);
+        return;
     }
 
-    return SUCCESS;
+    bool isDiagonal = (_currentRoute->route[_currIndexRoute + 1].x != _currentRoute->route[_currIndexRoute].x && _currentRoute->route[_currIndexRoute + 1].y != _currentRoute->route[_currIndexRoute].y);
+    float straightDis = isDiagonal ? 1.4142135f : 1.0f; 
+    
+    _currIndexRoute++;
+
+    for (int i = _currIndexRoute; i < _currentRoute->route.size() - 1; i++)
+    {
+        float absAngleS = atan2(_currentRoute->route[i + 1].y - _currentRoute->route[i].y, _currentRoute->route[i + 1].x - _currentRoute->route[i].x) * 180.0 / PI;
+        float turnAngleS = absAngleS - absAngle; // quanto cambia in base all'inizio (se è dritto l'angolo rimane lo stesso per tutto il tragitto)
+
+        if (turnAngleS > 180)
+            turnAngleS -= 360;
+        if (turnAngleS < -180)
+            turnAngleS += 360;
+
+        if (abs(turnAngleS) > 0.2)
+        {
+            break;
+        }
+
+        isDiagonal = (_currentRoute->route[i + 1].x != _currentRoute->route[i].x && _currentRoute->route[i + 1].y != _currentRoute->route[i].y);
+        straightDis += isDiagonal ? 1.4142135f : 1.0f;
+        
+        _currIndexRoute++;
+    }
+
+    _leftEnc.reset();
+    _rightEnc.reset();
+    _avgStraight = 0;
+    _targetDis = straightDis * UNIT;
+    _currentState = MOVING_STRAIGHT;
+
+    // TODO gestire rilevamento ostacoli
+    return;
 }
 
 // NavStatus RobotMovements::followPath(Route &route, Navigator &nav) {

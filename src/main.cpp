@@ -19,47 +19,55 @@ ServoMotor servo;
 LaserSensor ls;
 Ultrasonic ultrasonic;
 
-void setup() {
+void setup()
+{
     Serial.begin(115200);
-    while (!Serial);
-    
+    // while (!Serial);
+
+    Serial.println("Core 0 funzionante");
+
     initRobot();
-    
 }
 
-void loop() {
-    if (explorer._isExploring) {
-        explorer.update();
-    }
+void loop()
+{
+    explorer.update();
 
     robotMov.update();
-    
 }
 
-void setup1() {
+void setup1()
+{
+    Serial.println("Core 1 funzionante");
+
     wifi.init();
     conn.init(nav, explorer);
 }
 
-void loop1() {
+void loop1()
+{
     conn.update();
 }
 
-
-void leftTick() {
+void leftTick()
+{
     robotMov.getLeftEnc().increment();
 }
 
-void rightTick() {
+void rightTick()
+{
     robotMov.getRightEnc().increment();
 }
 
-void initRobot() {
-    
-    robotMov.init(&nav); 
+void initRobot()
+{
+
+    explorer.init(&nav, &robotMov, &servo, &ls, &ultrasonic);
+
+    robotMov.init(&nav);
     robotMov.getLeftEnc().init(leftTick);
     robotMov.getRightEnc().init(rightTick);
-    
+
     servo.init();
 
     ls.init();
