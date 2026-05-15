@@ -9,12 +9,15 @@
 
 using namespace std;
 
-mutex_t mapMutex;
-
 Navigator::Navigator()
 {
     _currPos = {0, 0};
-    mutex_init(&mapMutex);
+    xMapMutex = xSemaphoreCreateMutex();
+
+    if (xMapMutex == NULL)
+    {
+        Serial.println("Error mutex");
+    }
 }
 
 float Navigator::getDir()
@@ -41,21 +44,24 @@ bool Navigator::isFree(int16_t x, int16_t y)
 {
     Pos p = getChunkPos(x, y);
 
-    mutex_enter_blocking(&mapMutex);
+    if (xSemaphoreTake(xMapMutex, portMAX_DELAY) == pdTRUE)
+    {
+        auto it = _map.find(p);
 
-    auto it = _map.find(p);
+        if (it == _map.end())
+        {
+            xSemaphoreGive(xMapMutex);
+            return false;
+        }
 
-    if (it == _map.end()) {
-        mutex_exit(&mapMutex);
-        return false;
+        int16_t cellIndex = getPosIndex(x, y);
+        bool free = it->second.cells[cellIndex] < THRESHOLD_OBSTACLE;
+
+        xSemaphoreGive(xMapMutex);
+        return free;
     }
 
-    int16_t cellIndex = getPosIndex(x, y);
-    bool free = it->second.cells[cellIndex] < THRESHOLD_OBSTACLE;
-
-    return free;
-
-    mutex_exit(&mapMutex);
+    return false;
 }
 
 const std::map<Pos, Chunk> &Navigator::getMap() const
@@ -65,7 +71,7 @@ const std::map<Pos, Chunk> &Navigator::getMap() const
 
 Pos Navigator::getChunkPos(int16_t x, int16_t y)
 {
-    return {x >> 4, y >> 4};
+    return { (int16_t)(x >> 4), (int16_t)(y >> 4) };
 }
 
 int16_t Navigator::getPosIndex(int16_t x, int16_t y)
@@ -94,35 +100,37 @@ void Navigator::sculpt(int16_t targetX, int16_t targetY, SensorType st)
         break;
     }
 
-    mutex_enter_blocking(&mapMutex);
-
-    createBlanks(targetX, targetY);
-
-    int dX[] = {-1, 1, 0, 0, 0, -1, -1, 1, 1};
-    int dY[] = {0, 0, 1, -1, 0, 1, -1, 1, -1};
-    int padding = 9;
-
-    for (int k = 0; k < padding; k++)
+    if (xSemaphoreTake(xMapMutex, portMAX_DELAY) == pdTRUE)
     {
-        int16_t nX = targetX + dX[k];
-        int16_t nY = targetY + dY[k];
 
-        Pos cPos = getChunkPos(nX, nY);
-        int16_t cellIndex = getPosIndex(nX, nY);
+        createBlanks(targetX, targetY);
 
-        Chunk &currChunk = _map[cPos];
+        int dX[] = {-1, 1, 0, 0, 0, -1, -1, 1, 1};
+        int dY[] = {0, 0, 1, -1, 0, 1, -1, 1, -1};
+        int padding = 9;
 
-        if (currChunk.cells[cellIndex] + v > 255)
+        for (int k = 0; k < padding; k++)
         {
-            currChunk.cells[cellIndex] = 255;
+            int16_t nX = targetX + dX[k];
+            int16_t nY = targetY + dY[k];
+
+            Pos cPos = getChunkPos(nX, nY);
+            int16_t cellIndex = getPosIndex(nX, nY);
+
+            Chunk &currChunk = _map[cPos];
+
+            if (currChunk.cells[cellIndex] + v > 255)
+            {
+                currChunk.cells[cellIndex] = 255;
+            }
+            else
+            {
+                currChunk.cells[cellIndex] += v;
+            }
         }
-        else
-        {
-            currChunk.cells[cellIndex] += v;
-        }
+
+        xSemaphoreGive(xMapMutex);
     }
-
-    mutex_exit(&mapMutex);
 }
 
 Route Navigator::calcRoute(int16_t dest_x, int16_t dest_y)

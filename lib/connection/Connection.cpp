@@ -10,9 +10,7 @@ void Connection::init(Navigator &nav, Explorer &exp)
 {
 	// TODO usare websocket
 
-	mutex_enter_blocking(&mapMutex);
 	_map = &nav.getMap();
-	mutex_exit(&mapMutex);
 
 	_nav = &nav;
 	_exp = &exp;
@@ -104,26 +102,38 @@ void Connection::sendMap()
 	server.send(200, "application/octet-stream", "");
 
 	std::vector<Pos> positions;
-	mutex_enter_blocking(&mapMutex);
-	for (const auto &pair : *_map)
+
+	if (xSemaphoreTake(_nav->getMutex(), portMAX_DELAY) == pdTRUE)
 	{
-		positions.push_back(pair.first);
+		for (const auto &pair : *_map)
+		{
+			positions.push_back(pair.first);
+		}
+		xSemaphoreGive(_nav->getMutex());
 	}
-	mutex_exit(&mapMutex);
 
 	uint8_t tempCells[256];
 	for (const auto &p : positions)
 	{
-		mutex_enter_blocking(&mapMutex);
+		if (xSemaphoreTake(_nav->getMutex(), portMAX_DELAY) == pdTRUE)
+		{
 
-		auto it = _map->find(p); 
-        if (it != _map->end()) {
-            memcpy(tempCells, it->second.cells, 256);
-            mutex_exit(&mapMutex);
-        } else {
-            mutex_exit(&mapMutex);
-            continue; 
-        }
+			auto it = _map->find(p);
+			if (it != _map->end())
+			{
+				memcpy(tempCells, it->second.cells, 256);
+			}
+			else
+			{
+				xSemaphoreGive(_nav->getMutex());
+				continue;
+			}
+			xSemaphoreGive(_nav->getMutex());
+		}
+		else
+		{
+			continue;
+		}
 
 		int16_t coords[2] = {p.x, p.y};
 		server.sendContent((const char *)coords, sizeof(coords)); // Coordinate del Chunk: 4 byte, 2 per x e 2 per y

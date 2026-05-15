@@ -24,8 +24,6 @@ void setup()
     Serial.begin(115200);
     // while (!Serial);
 
-    Serial.println("Core 0 funzionante");
-
     initRobot();
 }
 
@@ -38,8 +36,8 @@ void loop()
 
 void setup1()
 {
-    Serial.println("Core 1 funzionante");
-
+    delay(3500);
+    
     wifi.init();
     conn.init(nav, explorer);
 }

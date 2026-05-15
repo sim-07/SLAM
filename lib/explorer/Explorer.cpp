@@ -8,7 +8,6 @@ void Explorer::init(Navigator *n, RobotMovements *r, ServoMotor *s, LaserSensor 
     _servo = s;
     _laser = l;
     _ultrasonic = u;
-
 }
 
 void Explorer::setCurrentState(ExpState currState)
@@ -20,43 +19,43 @@ void Explorer::update()
 {
     switch (_currentState)
     {
-        case START_EXPLORING:
-            _firstPos = _nav->getPos();
-            _isExploring = true;
-            _currentState = SCAN;
-            break;
-
-        case SCAN:
-            scan();
-            _currentState = MOVE_TO_FRONTIER;
-            break;
-
-        case MOVE_TO_FRONTIER:
-        {
-            Route routeFrontier = findBorder();
-            if (routeFrontier.numSteps > 0)
-            {
-                _rb->setRoute(routeFrontier);
-                _rb->setCurrentState(FOLLOWING);
-                _currentState = SCAN;
-            }
-            else
-            {
-                _isExploring = false;
-                Route rHome = _nav->calcRoute(_firstPos.x, _firstPos.y);
-                _currentState = COMPLETED;
-                _rb->setRoute(rHome);
-                _rb->setCurrentState(FOLLOWING);
-            }
-        }
+    case START_EXPLORING:
+        _firstPos = _nav->getPos();
+        _isExploring = true;
+        _currentState = SCAN;
         break;
 
-        case COMPLETED:
-            _rb->stop();
-            break;
+    case SCAN:
+        scan();
+        _currentState = MOVE_TO_FRONTIER;
+        break;
 
-        default:
-            break;
+    case MOVE_TO_FRONTIER:
+    {
+        Route routeFrontier = findBorder();
+        if (routeFrontier.numSteps > 0)
+        {
+            _rb->setRoute(routeFrontier);
+            _rb->setCurrentState(FOLLOWING);
+            _currentState = SCAN;
+        }
+        else
+        {
+            _isExploring = false;
+            Route rHome = _nav->calcRoute(_firstPos.x, _firstPos.y);
+            _currentState = COMPLETED;
+            _rb->setRoute(rHome);
+            _rb->setCurrentState(FOLLOWING);
+        }
+    }
+    break;
+
+    case COMPLETED:
+        _rb->stop();
+        break;
+
+    default:
+        break;
     }
 }
 
@@ -136,86 +135,88 @@ Route Explorer::findBorder()
     while (!mapOpenList.empty())
     {
 
-        mutex_enter_blocking(&mapMutex);
-
-        const auto &map = _nav->getMap();
-
-        if (counterMax > maxExp)
+        if (xSemaphoreTake(_nav->getMutex(), portMAX_DELAY) == pdTRUE)
         {
-            mutex_exit(&mapMutex);
 
-            Route emptyRoute;
-            return emptyRoute;
-        }
-        counterMax++;
+            const auto &map = _nav->getMap();
 
-        Pos curr = mapOpenList.front();
-        mapOpenList.pop_front();
-
-        for (uint8_t i = 0; i < 8; i++)
-        {
-            int16_t nX = curr.x + dX[i]; // Coordinate logiche correnti
-            int16_t nY = curr.y + dY[i];
-
-            if (mapClosedList.find({nX, nY}) != mapClosedList.end())
-            { // Se l'ho già vista e scartata passo oltre
-                continue;
-            }
-
-            Pos chunkPos = Navigator::getChunkPos(nX, nY);
-            int16_t index = Navigator::getPosIndex(nX, nY);
-
-            auto it = map.find(chunkPos);
-            if (it != map.end())
+            if (counterMax > maxExp)
             {
-                const Chunk &chunk = it->second; // Chunk in cui mi trovo
+                xSemaphoreGive(_nav->getMutex());
 
-                if (chunk.cells[index] > Navigator::THRESHOLD_OBSTACLE)
-                { // Se è un ostacolo lo metto in closedlist
-                    mapClosedList.insert({nX, nY});
+                Route emptyRoute;
+                return emptyRoute;
+            }
+            counterMax++;
+
+            Pos curr = mapOpenList.front();
+            mapOpenList.pop_front();
+
+            for (uint8_t i = 0; i < 8; i++)
+            {
+                int16_t nX = curr.x + dX[i]; // Coordinate logiche correnti
+                int16_t nY = curr.y + dY[i];
+
+                if (mapClosedList.find({nX, nY}) != mapClosedList.end())
+                { // Se l'ho già vista e scartata passo oltre
+                    continue;
                 }
-                else if (chunk.cells[index] < Navigator::THRESHOLD_OBSTACLE)
-                { // Se è libero va in openlist
-                    mapOpenList.push_back({nX, nY});
-                    mapClosedList.insert({nX, nY});
-                }
-                else if (chunk.cells[index] == DEFAULT_VAL)
-                { // Trovata possibile frontiera
 
-                    uint8_t countFrontier = 0;
-                    for (uint8_t j = 0; j < 8; j++)
-                    { // Analizzo celle adiacenti a quella sconosciuta
-                        int16_t nXC = nX + dX[j];
-                        int16_t nYC = nY + dY[j];
+                Pos chunkPos = Navigator::getChunkPos(nX, nY);
+                int16_t index = Navigator::getPosIndex(nX, nY);
 
-                        Pos chunkPosC = Navigator::getChunkPos(nXC, nYC);
-                        int16_t indexC = Navigator::getPosIndex(nXC, nYC);
+                auto it = map.find(chunkPos);
+                if (it != map.end())
+                {
+                    const Chunk &chunk = it->second; // Chunk in cui mi trovo
 
-                        auto itC = map.find(chunkPosC);
-                        if (itC != map.end())
-                        {
-                            const Chunk &chunkC = itC->second;
+                    if (chunk.cells[index] > Navigator::THRESHOLD_OBSTACLE)
+                    { // Se è un ostacolo lo metto in closedlist
+                        mapClosedList.insert({nX, nY});
+                    }
+                    else if (chunk.cells[index] < Navigator::THRESHOLD_OBSTACLE)
+                    { // Se è libero va in openlist
+                        mapOpenList.push_back({nX, nY});
+                        mapClosedList.insert({nX, nY});
+                    }
+                    else if (chunk.cells[index] == DEFAULT_VAL)
+                    { // Trovata possibile frontiera
 
-                            if (chunkC.cells[indexC] == DEFAULT_VAL)
+                        uint8_t countFrontier = 0;
+                        for (uint8_t j = 0; j < 8; j++)
+                        { // Analizzo celle adiacenti a quella sconosciuta
+                            int16_t nXC = nX + dX[j];
+                            int16_t nYC = nY + dY[j];
+
+                            Pos chunkPosC = Navigator::getChunkPos(nXC, nYC);
+                            int16_t indexC = Navigator::getPosIndex(nXC, nYC);
+
+                            auto itC = map.find(chunkPosC);
+                            if (itC != map.end())
                             {
-                                countFrontier++; // Trovata una'altra frontiera adiacente
+                                const Chunk &chunkC = itC->second;
+
+                                if (chunkC.cells[indexC] == DEFAULT_VAL)
+                                {
+                                    countFrontier++; // Trovata una'altra frontiera adiacente
+                                }
                             }
                         }
-                    }
 
-                    if (countFrontier >= 3)
-                    {
-                        // Se ci sono almeno 3 celle sconosciute adiacenti è una frontiera, restituisco il percorso
-                        // Non posso chiamare qui calcRoute perché chiamerebbe aStar che chiamerebbe isFree che usa il mutex, causando deadlock
-                        foundFrPos = {nX, nY};
-                        foundFrontier = true;
-                        break;
+                        if (countFrontier >= 3)
+                        {
+                            // Se ci sono almeno 3 celle sconosciute adiacenti è una frontiera, restituisco il percorso
+                            // Non posso chiamare qui calcRoute perché chiamerebbe aStar che chiamerebbe isFree che usa il mutex, causando deadlock
+                            foundFrPos = {nX, nY};
+                            foundFrontier = true;
+                            break;
+                        }
                     }
                 }
             }
-        }
 
-        mutex_exit(&mapMutex);
+            xSemaphoreGive(_nav->getMutex());
+        }
 
         if (foundFrontier)
         {

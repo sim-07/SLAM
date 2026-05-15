@@ -7,11 +7,11 @@
 #include <vector>
 #include <map>
 #include <memory>
-#include "pico/mutex.h"
+#include "freertos/FreeRTOS.h"
+//#include "freertos/task.h"
+#include "freertos/semphr.h"
 
 inline constexpr uint8_t DEFAULT_VAL = 128;
-
-extern mutex_t mapMutex;
 
 struct Pos
 {
@@ -63,6 +63,8 @@ private:
 	bool isFree(int16_t x, int16_t y);
 	Route aStar(Pos start, Pos goal);
 
+	SemaphoreHandle_t xMapMutex;
+
 public:
 	enum SensorType
 	{
@@ -92,6 +94,8 @@ public:
 	void setDestination(int16_t x, int16_t y);
 	void setCurrPos(int16_t x, int16_t y);
 	void sculpt(int16_t targetX, int16_t targetY, SensorType st);
+
+	SemaphoreHandle_t getMutex() { return xMapMutex; }
 };
 
 #endif
