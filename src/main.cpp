@@ -19,33 +19,58 @@ ServoMotor servo;
 LaserSensor ls;
 Ultrasonic ultrasonic;
 
+void TaskWeb(void *pvParameters);
+
 void setup()
 {
     Serial.begin(115200);
     // while (!Serial);
 
     initRobot();
+
+    xTaskCreatePinnedToCore(
+        TaskWeb,   // Funzione da eseguire
+        "TaskWeb", // Nome del task
+        10000,     // Stack size
+        NULL,      // Parametri
+        1,         // Priorità
+        NULL,      // Task handle
+        0          // CORE 0
+    );
 }
 
 void loop()
 {
     explorer.update();
-
     robotMov.update();
+    
+    yield();
 }
 
-void setup1()
-{
-    delay(3500);
+void TaskWeb(void *pvParameters) {
+    delay(500);
     
     wifi.init();
     conn.init(nav, explorer);
+
+    for (;;) {
+        conn.update();
+        vTaskDelay(pdMS_TO_TICKS(10));
+    }
 }
 
-void loop1()
-{
-    conn.update();
-}
+// void setup1()
+// {
+//     delay(500);
+
+//     wifi.init();
+//     conn.init(nav, explorer);
+// }
+
+// void loop1()
+// {
+//     conn.update();
+// }
 
 void leftTick()
 {
