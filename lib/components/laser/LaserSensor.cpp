@@ -4,8 +4,14 @@ LaserSensor::LaserSensor() {
     _status = false;
 }
 
-bool LaserSensor::init() {
-    Wire.begin();
+bool LaserSensor::init(int8_t sdaPin, int8_t sclPin) {
+    bool i2c_ok = Wire.begin(sdaPin, sclPin);
+
+    if (!i2c_ok) {
+        _status = false;
+        return false;
+    }
+
     sensor.setTimeout(500);
     
     if (!sensor.init()) {
@@ -15,8 +21,8 @@ bool LaserSensor::init() {
 
     sensor.setROISize(6, 6);
     sensor.setDistanceMode(VL53L1X::Long);
-    sensor.setMeasurementTimingBudget(100000);
-    sensor.startContinuous(120);
+    sensor.setMeasurementTimingBudget(50000);
+    sensor.startContinuous(50);
     
     _status = true;
     return true;

@@ -13,7 +13,7 @@ private:
 public:
     LaserSensor();
 
-    bool init();
+    bool init(int8_t sdaPin = 8, int8_t sclPin = 9);
     float getDistance();
     bool isReady();
 };

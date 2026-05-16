@@ -1,0 +1,32 @@
+- LASER:
+    GPIO 8: sda
+    GPIO 9: scl
+
+- ULTRASUONI:
+    GPIO 17: TRIG_PIN
+    PiGPIOn 16: ECHO_PIN
+
+- SERVO:
+    GPIO 15
+
+- ENCODER:
+    GPIO 4: Encoder sinistro
+    GPIO 5: Encoder destro
+
+- MOTORI
+    Motore Sinistro:
+        GPIO 6 (PWM): Controlla la velocità dello sbandamento a sinistra.
+        GPIO 7 (Dir 1): Direzione.
+        GPIO 18 (Dir 2): Direzione.
+
+    Motore Destro:
+        GPIO 1 (PWM): Controlla la velocità dello sbandamento a destra.
+        GPIO 2 (Dir 1): Direzione.
+        GPIO 14 (Dir 2): Direzione.
+
+- L298N:
+    GND esp32 s3 al GND dell'L298N
+    Morsetto 12V collegato al polo positivo del pacco batterie (quello a cui sono collegati 2 fili rossi)
+
+- ALIMENTAZIONE
+    5V0 collegato al morsetto 5V dell'L298N
