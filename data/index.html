@@ -1,16 +1,115 @@
-<html>
+<!DOCTYPE html>
+<html lang="it">
 
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Robot Control Panel</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background-color: #1a1a1a;
+            color: #ffffff;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
 
+        .container {
+            width: 100%;
+            max-width: 540px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            background: #262626;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+        }
+
+        .controls {
+            display: flex;
+            gap: 12px;
+            width: 100%;
+        }
+
+        button {
+            flex: 1;
+            padding: 12px 24px;
+            font-size: 14px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Bottone Start (Esplorazione) */
+        button[onclick*="START_EXPLORE"] {
+            background-color: #2563eb;
+            color: white;
+        }
+
+        button[onclick*="START_EXPLORE"]:hover {
+            background-color: #1d4ed8;
+        }
+
+        /* Bottone Stop (Esplorazione) */
+        button[onclick*="STOP_EXPLORE"] {
+            background-color: #dc2626;
+            color: white;
+        }
+
+        button[onclick*="STOP_EXPLORE"]:hover {
+            background-color: #b91c1c;
+        }
+
+        button:active {
+            transform: scale(0.98);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+        }
+
+        .canvas-wrapper {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            max-width: 500px;
+            max-height: 500px;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+
+        canvas {
+            width: 100% !important;
+            height: 100% !important;
+            display: block;
+            background-color: #222;
+        }
+    </style>
 </head>
 
 <body>
 
-    <button onclick="sendMessage(START_EXPLORE)">START EXPLORING</button>
-    <button onclick="sendMessage(STOP_EXPLORE)">STOP EXPLORING</button>
+    <div class="container">
+        <div class="controls">
+            <button onclick="sendMessage(START_EXPLORE)">START EXPLORING</button>
+            <button onclick="sendMessage(STOP_EXPLORE)">STOP EXPLORING</button>
+        </div>
 
-
-    <canvas id="map" width="500" height="500" style="border:1px solid #000;"></canvas>
+        <div class="canvas-wrapper">
+            <canvas id="map" width="500" height="500"></canvas>
+        </div>
+    </div>
 
     <script>
         const SET_TARGET = 0;

@@ -27,6 +27,7 @@
 - L298N:
     GND esp32 s3 al GND dell'L298N
     Morsetto 12V collegato al polo positivo del pacco batterie (quello a cui sono collegati 2 fili rossi)
+    Morsetto 5V vuoto
 
-- ALIMENTAZIONE
-    5V0 collegato al morsetto 5V dell'L298N
+- ALIMENTAZIONE esp32
+    5V0 esp32 collegato al polo positivo del pacco batterie
