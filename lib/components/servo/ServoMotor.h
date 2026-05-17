@@ -19,8 +19,8 @@ class ServoMotor
         void moveToAngleFast(int angle);
         int getAngle() const { return _currentAngle; }
 
-        static const uint8_t MIN_ANGLE = 5;
-        static const uint8_t MAX_ANGLE = 175;
+        static const uint16_t MIN_ANGLE = 5;
+        static const uint16_t MAX_ANGLE = 175;
 };
 
 #endif

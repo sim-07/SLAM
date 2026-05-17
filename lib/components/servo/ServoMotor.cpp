@@ -22,5 +22,5 @@ void ServoMotor::moveToAngle(int angle) {
 
 void ServoMotor::moveToAngleFast(int angle) {
     angle = constrain(angle, MIN_ANGLE, MAX_ANGLE);
-    _internalServo.write(_currentAngle);
+    _internalServo.write(angle);
 }

@@ -8,6 +8,8 @@ void Explorer::init(Navigator *n, RobotMovements *r, ServoMotor *s, LaserSensor 
     _servo = s;
     _laser = l;
     _ultrasonic = u;
+
+    _currServoP = _servo->getAngle();
 }
 
 void Explorer::setCurrentState(ExpState currState)
@@ -17,6 +19,7 @@ void Explorer::setCurrentState(ExpState currState)
 
 void Explorer::update()
 {
+
     switch (_currentState)
     {
     case START_EXPLORING:
@@ -27,7 +30,6 @@ void Explorer::update()
 
     case SCAN:
         scan();
-        _currentState = MOVE_TO_FRONTIER;
         break;
 
     case MOVE_TO_FRONTIER:
@@ -37,7 +39,7 @@ void Explorer::update()
         {
             _rb->setRoute(routeFrontier);
             _rb->setCurrentState(FOLLOWING);
-            _currentState = SCAN;
+            _currentState = FOLLOWING_F;
         }
         else
         {
@@ -50,8 +52,13 @@ void Explorer::update()
     }
     break;
 
+    case FOLLOWING_F:
+        if (_rb->getCurrentState() == COMPLETED_ROUTE) {
+            _currentState = SCAN;
+        }
+        break;
+
     case COMPLETED:
-        _rb->stop();
         break;
 
     default:
@@ -73,18 +80,17 @@ Pos Explorer::calcCoordinates(Pos currPos, float dis, int servoAngle)
 
 void Explorer::scan()
 {
+    // TODO tornare alla posizione iniziale del servo gradualmente
+    _servo->moveToAngleFast(_currScanPoint);
+    searchObstacles();
+    _currScanPoint += SCAN_PRECISION;
+    delay(30);
 
-    if (_servo->getAngle() != ServoMotor::MIN_ANGLE)
+    if (ServoMotor::MAX_ANGLE - _servo->getAngle() < 2)
     {
-        _servo->moveToAngleFast(ServoMotor::MIN_ANGLE);
-        delay(200);
-    }
-
-    for (int a = ServoMotor::MIN_ANGLE; a <= ServoMotor::MAX_ANGLE; a += SCAN_PRECISION)
-    {
-        _servo->moveToAngle(a);
-        searchObstacles();
-        delay(30);
+        _currentState = MOVE_TO_FRONTIER;
+        _currScanPoint = ServoMotor::MIN_ANGLE;
+        return;
     }
 }
 
@@ -168,7 +174,7 @@ Route Explorer::findBorder()
                 auto it = map.find(chunkPos);
                 if (it != map.end())
                 {
-                    const Chunk &chunk = it->second; // Chunk in cui mi trovo
+                    const Chunk &chunk = it->second; // Chunk in cui mi trovo virtualmente
 
                     if (chunk.cells[index] > Navigator::THRESHOLD_OBSTACLE)
                     { // Se è un ostacolo lo metto in closedlist
@@ -213,6 +219,12 @@ Route Explorer::findBorder()
                         }
                     }
                 }
+                else
+                {
+                    // anche il chunk è sconosciuto, sicuramente è una frontiera
+                    foundFrPos = {curr.x, curr.y};
+                    foundFrontier = true;
+                }
             }
 
             xSemaphoreGive(_nav->getMutex());
@@ -228,6 +240,7 @@ Route Explorer::findBorder()
             }
             else
             {
+                foundFrontier = false;
                 mapClosedList.insert(foundFrPos); // Non c'è un percorso utilizzabile, cerco altre frontiere
             }
         }

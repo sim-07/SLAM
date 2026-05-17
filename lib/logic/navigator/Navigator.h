@@ -59,7 +59,6 @@ private:
 	Pos _destination;
 	float _currDir;
 
-	void createBlanks(int16_t targetX, int16_t targetY);
 	bool isFree(int16_t x, int16_t y);
 	Route aStar(Pos start, Pos goal);
 
@@ -69,7 +68,7 @@ public:
 	enum SensorType
 	{
 		ULTRASONIC = 0,
-		LASER = 1
+		LASER = 1,
 	};
 	static const uint8_t CELL_CM = 10;
 	static const uint16_t CHUNK_DIM = 256;
@@ -93,6 +92,7 @@ public:
 	void setDir(float angle);
 	void setDestination(int16_t x, int16_t y);
 	void setCurrPos(int16_t x, int16_t y);
+	void createBlanks(int16_t targetX, int16_t targetY);
 	void sculpt(int16_t targetX, int16_t targetY, SensorType st);
 
 	SemaphoreHandle_t getMutex() { return xMapMutex; }

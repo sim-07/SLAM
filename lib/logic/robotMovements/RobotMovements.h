@@ -46,6 +46,8 @@ class RobotMovements {
         float _targetDis = 0;
         float _targetAngle = 0;
 
+        float normAngle(float angle);
+
         const float _wheelDistance = 10.0;
 
     public:
@@ -61,6 +63,7 @@ class RobotMovements {
         void turn();
         void stop();
         void setCurrentState(RbState currState);
+        RbState getCurrentState() { return _currentState; };
         void update();
         void setRoute(Route &route);
         void followPath();

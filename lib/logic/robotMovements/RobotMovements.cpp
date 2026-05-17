@@ -43,6 +43,7 @@ void RobotMovements::update()
 void RobotMovements::setRoute(Route &route)
 {
     _currentRoute = &route;
+    _currIndexRoute = 0;
 }
 
 void RobotMovements::setCurrentState(RbState currState)
@@ -77,10 +78,12 @@ void RobotMovements::goStraight()
     }
     else
     {
-
+        stop();
+        _leftEnc.reset();
+        _rightEnc.reset();
         _targetDis = 0;
         _avgStraight = 0;
-        _nav->setCurrPos(_currentRoute->route[_currIndexRoute].x, _currentRoute->route[_currIndexRoute].y);
+        _nav->setCurrPos(_currentRoute->route[_currIndexRoute].x, _currentRoute->route[_currIndexRoute].y); // TODO controllare
         _currentState = FOLLOWING;
     }
 }
@@ -123,6 +126,10 @@ void RobotMovements::turn()
     }
     else
     {
+        stop();
+        _leftEnc.reset();
+        _rightEnc.reset();
+        _nav->setDir(normAngle(_nav->getDir() + _targetAngle));
         _targetAngle = 0;
         _avgTurn = 0;
         _currentState = FOLLOWING;
@@ -135,14 +142,15 @@ void RobotMovements::followPath()
     if (_currentRoute->route.size() > _currIndexRoute)
     {
         _targetCell = _currentRoute->route[_currIndexRoute];
-    } else {
+    }
+    else
+    {
         _currentState = COMPLETED_ROUTE;
         return;
     }
-    
+
     Pos currPos = _nav->getPos();
     float currDir = _nav->getDir();
-
 
     if (_targetCell.x == currPos.x && _targetCell.y == currPos.y)
     {
@@ -153,10 +161,7 @@ void RobotMovements::followPath()
     float absAngle = atan2(_targetCell.y - currPos.y, _targetCell.x - currPos.x) * 180.0 / PI;
     float turnAngle = absAngle - currDir;
 
-    if (turnAngle > 180)
-        turnAngle -= 360;
-    if (turnAngle < -180)
-        turnAngle += 360;
+    turnAngle = normAngle(turnAngle);
 
     if (abs(turnAngle) > 0.2)
     {
@@ -166,13 +171,13 @@ void RobotMovements::followPath()
         _avgTurn = 0;
         _targetAngle = turnAngle;
         _currentState = TURNING;
-        _nav->setDir(absAngle);
+
         return;
     }
 
     bool isDiagonal = (_currentRoute->route[_currIndexRoute + 1].x != _currentRoute->route[_currIndexRoute].x && _currentRoute->route[_currIndexRoute + 1].y != _currentRoute->route[_currIndexRoute].y);
-    float straightDis = isDiagonal ? 1.4142135f : 1.0f; 
-    
+    float straightDis = isDiagonal ? 1.4142135f : 1.0f;
+
     _currIndexRoute++;
 
     for (int i = _currIndexRoute; i < _currentRoute->route.size() - 1; i++)
@@ -180,10 +185,7 @@ void RobotMovements::followPath()
         float absAngleS = atan2(_currentRoute->route[i + 1].y - _currentRoute->route[i].y, _currentRoute->route[i + 1].x - _currentRoute->route[i].x) * 180.0 / PI;
         float turnAngleS = absAngleS - absAngle; // quanto cambia in base all'inizio (se è dritto l'angolo rimane lo stesso per tutto il tragitto)
 
-        if (turnAngleS > 180)
-            turnAngleS -= 360;
-        if (turnAngleS < -180)
-            turnAngleS += 360;
+        turnAngleS = normAngle(turnAngleS);
 
         if (abs(turnAngleS) > 0.2)
         {
@@ -192,7 +194,7 @@ void RobotMovements::followPath()
 
         isDiagonal = (_currentRoute->route[i + 1].x != _currentRoute->route[i].x && _currentRoute->route[i + 1].y != _currentRoute->route[i].y);
         straightDis += isDiagonal ? 1.4142135f : 1.0f;
-        
+
         _currIndexRoute++;
     }
 
@@ -206,63 +208,12 @@ void RobotMovements::followPath()
     return;
 }
 
-// NavStatus RobotMovements::followPath(Route &route, Navigator &nav) {
+float RobotMovements::normAngle(float angle)
+{
+    if (angle > 180)
+        angle -= 360;
+    if (angle < -180)
+        angle += 360;
 
-//     while (!route.route.empty())
-//     {
-//         Pos target = route.route.top();
-//         Pos currPos = nav.getPos();
-//         float currDir = nav.getDir();
-
-//         float absAngle = atan2(target.y - currPos.y, target.x - currPos.x) * 180.0 / PI;
-//         float turnAngle = absAngle - currDir;
-
-//         if (turnAngle > 180) turnAngle -= 360;
-//         if (turnAngle < -180) turnAngle += 360;
-
-//         if (abs(turnAngle) > 1.0) {
-//             stop(); // TODO girare gradualmente
-//             turn(turnAngle);
-//             nav.setDir(absAngle);
-//         }
-
-//         // goStraight finché il percorso è dritto
-//         Pos currPointS = currPos;
-//         float currDirS = currDir;
-//         float straightStepsCells = 0;
-//         bool isDiagonal = false;
-//         while (!route.route.empty()) {
-
-//             Pos nextPointS = route.route.top();
-
-//             float absAngleS = atan2(nextPointS.y - currPointS.y, nextPointS.x - currPointS.x) * 180.0 / PI;
-//             float turnAngleS = absAngleS - absAngle; // quanto cambia in base all'inizio (se è dritto l'angolo rimane lo stesso per tutto il tragitto)
-
-//             if (turnAngleS > 180) turnAngleS -= 360;
-//             if (turnAngleS < -180) turnAngleS += 360;
-
-//             if (abs(turnAngleS) > 1.0) {
-//                 break;
-//             }
-
-//             if (nextPointS.x != currPointS.x && nextPointS.y != currPointS.y) {
-//                 isDiagonal = true;
-//             } else {
-//                 isDiagonal = false;
-//             }
-
-//             straightStepsCells += isDiagonal ? 1.41f : 1;
-
-//             currPointS = nextPointS;
-//             route.route.pop();
-//         }
-
-//         goStraight(straightStepsCells * UNIT);
-//         nav.setCurrPos(currPointS.x, currPointS.y);
-
-//     }
-
-//     // TODO gestire rilevamento ostacoli
-//     return SUCCESS;
-
-// }
+    return angle;
+}
