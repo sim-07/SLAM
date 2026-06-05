@@ -1,10 +1,11 @@
 #include "RobotMovements.h"
 
-void RobotMovements::init(Navigator *n)
+void RobotMovements::init(Navigator *n, QueueHandle_t messToClient)
 {
-
     _leftMotor.initMotor();
     _rightMotor.initMotor();
+
+    _messToClient = messToClient;
 
     _nav = n;
 
@@ -18,6 +19,10 @@ void RobotMovements::update()
 {
     switch (_currentState)
     {
+    case GOTO:
+        goTo();
+        break;
+
     case FOLLOWING:
         followPath();
         break;
@@ -40,9 +45,35 @@ void RobotMovements::update()
     }
 }
 
+void RobotMovements::goTo()
+{
+    Route r = _nav->calcRoute(_destination.x, _destination.y);
+
+    if (r.numSteps > 0)
+    {
+        _currentState = FOLLOWING;
+        _currentRoute = r;
+    }
+    else
+    {
+        Message msg;
+        msg.type = INFO;
+
+        strncpy(msg.mess, "No suitable path", sizeof(msg.mess) - 1);
+        msg.mess[sizeof(msg.mess) - 1] = '\0';
+
+        xQueueSend(_messToClient, &msg, 0);
+    }
+}
+
+void RobotMovements::setDestination(int16_t x, int16_t y)
+{
+    _destination = {x, y};
+}
+
 void RobotMovements::setRoute(Route &route)
 {
-    _currentRoute = &route;
+    _currentRoute = route;
     _currIndexRoute = 0;
 }
 
@@ -83,7 +114,7 @@ void RobotMovements::goStraight()
         _rightEnc.reset();
         _targetDis = 0;
         _avgStraight = 0;
-        _nav->setCurrPos(_currentRoute->route[_currIndexRoute].x, _currentRoute->route[_currIndexRoute].y); // TODO controllare
+        _nav->setCurrPos(_currentRoute.route[_currIndexRoute].x, _currentRoute.route[_currIndexRoute].y); // TODO controllare
         _currentState = FOLLOWING;
     }
 }
@@ -139,9 +170,9 @@ void RobotMovements::turn()
 void RobotMovements::followPath()
 {
 
-    if (_currentRoute->route.size() > _currIndexRoute)
+    if (_currentRoute.route.size() > _currIndexRoute)
     {
-        _targetCell = _currentRoute->route[_currIndexRoute];
+        _nextCell = _currentRoute.route[_currIndexRoute];
     }
     else
     {
@@ -152,13 +183,13 @@ void RobotMovements::followPath()
     Pos currPos = _nav->getPos();
     float currDir = _nav->getDir();
 
-    if (_targetCell.x == currPos.x && _targetCell.y == currPos.y)
+    if (_nextCell.x == currPos.x && _nextCell.y == currPos.y)
     {
         _currIndexRoute++;
         return;
     }
 
-    float absAngle = atan2(_targetCell.y - currPos.y, _targetCell.x - currPos.x) * 180.0 / PI;
+    float absAngle = atan2(_nextCell.y - currPos.y, _nextCell.x - currPos.x) * 180.0 / PI;
     float turnAngle = absAngle - currDir;
 
     turnAngle = normAngle(turnAngle);
@@ -175,25 +206,25 @@ void RobotMovements::followPath()
         return;
     }
 
-    bool isDiagonal = (_currentRoute->route[_currIndexRoute + 1].x != _currentRoute->route[_currIndexRoute].x && _currentRoute->route[_currIndexRoute + 1].y != _currentRoute->route[_currIndexRoute].y);
-    float straightDis = isDiagonal ? 1.4142135f : 1.0f;
+    // va dritto finché non c'è una curva
 
-    _currIndexRoute++;
+    bool isDiagonal = false;
+    float straightDis = 0;
 
-    for (int i = _currIndexRoute; i < _currentRoute->route.size() - 1; i++)
+    for (int i = _currIndexRoute; i < _currentRoute.route.size() - 1; i++)
     {
-        float absAngleS = atan2(_currentRoute->route[i + 1].y - _currentRoute->route[i].y, _currentRoute->route[i + 1].x - _currentRoute->route[i].x) * 180.0 / PI;
+        float absAngleS = atan2(_currentRoute.route[i + 1].y - _currentRoute.route[i].y, _currentRoute.route[i + 1].x - _currentRoute.route[i].x) * 180.0 / PI;
         float turnAngleS = absAngleS - absAngle; // quanto cambia in base all'inizio (se è dritto l'angolo rimane lo stesso per tutto il tragitto)
 
         turnAngleS = normAngle(turnAngleS);
 
-        if (abs(turnAngleS) > 0.2)
+        isDiagonal = (_currentRoute.route[i + 1].x != _currentRoute.route[i].x && _currentRoute.route[i + 1].y != _currentRoute.route[i].y);
+        straightDis += isDiagonal ? 1.4142135f : 1.0f;
+
+        if (abs(turnAngleS) > 0.1)
         {
             break;
         }
-
-        isDiagonal = (_currentRoute->route[i + 1].x != _currentRoute->route[i].x && _currentRoute->route[i + 1].y != _currentRoute->route[i].y);
-        straightDis += isDiagonal ? 1.4142135f : 1.0f;
 
         _currIndexRoute++;
     }

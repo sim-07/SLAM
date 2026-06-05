@@ -90,7 +90,6 @@ public:
 	float getDir();
 
 	void setDir(float angle);
-	void setDestination(int16_t x, int16_t y);
 	void setCurrPos(int16_t x, int16_t y);
 	void createBlanks(int16_t targetX, int16_t targetY);
 	void sculpt(int16_t targetX, int16_t targetY, SensorType st);

@@ -7,6 +7,8 @@
 #include <map>
 #include <set>
 #include "Navigator.h"
+#include "RobotMovements.h"
+#include "../../src/Common.h"
 
 class Explorer;
 
@@ -28,12 +30,15 @@ private:
     const std::map<Pos, Chunk>* _map = nullptr;
     Navigator *_nav = nullptr;
     Explorer *_exp = nullptr;
+    RobotMovements *_rb = nullptr;
+
+    QueueHandle_t _messToClient;
 
     bool _isExploring = false;
 
 public:
     Connection() : server(80) {}
-    void init(Navigator &nav, Explorer &exp);
+    void init(Navigator &nav, Explorer &exp, RobotMovements &rb, QueueHandle_t messToClient);
     void update();
 };
 

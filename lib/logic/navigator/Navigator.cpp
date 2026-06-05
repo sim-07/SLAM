@@ -30,11 +30,6 @@ void Navigator::setDir(float angle)
     _currDir = angle;
 }
 
-void Navigator::setDestination(int16_t x, int16_t y)
-{
-    _destination = {x, y};
-}
-
 void Navigator::setCurrPos(int16_t x, int16_t y)
 {
     _currPos = {x, y};

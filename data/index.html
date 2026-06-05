@@ -106,8 +106,14 @@
         </div>
 
         <div class="canvas-wrapper">
-            <canvas id="map" width="500" height="500"></canvas>
+            <canvas id="map" width="500" height="500" id="canvasMap"></canvas>
         </div>
+
+        <h5>Selected coordinates: </h5>
+        <p id="selCoord"></p>
+        <button id="goToCoord" onclick="sendCoords" disabled>Go there</button>
+
+        <h3 id="messFromEsp"></p>
     </div>
 
     <script>
@@ -117,6 +123,7 @@
 
         window.onload = (event) => {
             receiveMap();
+            receiveMess();
         };
 
         const map = new Map();
@@ -146,13 +153,30 @@
             } catch (error) {
                 console.error("Connection error: ", error);
             } finally {
-                setTimeout(receiveMap, 500); // Aggiorna 500ms dopo aver finito di ricevere
+                setTimeout(receiveMap, 500); // Aggiorno 500ms dopo aver finito di ricevere
+            }
+        }
+
+        async function receiveMess() {
+            try {
+                const response = await fetch('/api/sendMessageToClient');
+
+                if (response.status == 200) {
+                    const data = await response.json();
+
+                    document.getElementById("messFromEsp").textContent = data.mess;
+                }
+                
+            } catch (error) {
+                console.error("Connection error: ", error);
+            } finally {
+                setTimeout(receiveMess, 1000);
             }
         }
 
         async function sendMessage(messType, body = {}) {
             try {
-                const res = await fetch('/api/sendMessage', {
+                const res = await fetch('/api/sendMessageToEsp', {
                     method: "POST",
                     headers: {
                         'Content-Type': 'application/json'
@@ -170,6 +194,7 @@
             }
         }
 
+        let scaleChunk;
         function drawMap() {
             // Trovare coordinate minime e massime
             // Calcolare la scala
@@ -211,7 +236,7 @@
             let deltaX = (maxChunkX - minChunkX) + 1;
             let deltaY = (maxChunkY - minChunkY) + 1;
 
-            let scaleChunk = Math.min(cw / deltaX, ch / deltaY);
+            scaleChunk = Math.min(cw / deltaX, ch / deltaY);
 
             let centerMapX = deltaX / 2 + minChunkX;
             let centerMapY = deltaY / 2 + minChunkY;
@@ -249,6 +274,37 @@
             let grad = (255 - val).toString(16).padStart(2, '0');
             return `#${grad}${grad}${grad}`;
         }
+
+
+        function getMousePosition(canvas, event) {
+          if (!scaleChunk) {
+            return;
+          }
+            let rect = canvas.getBoundingClientRect();
+            let x = Math.floor((event.clientX - rect.left) / (scaleChunk / 16));
+            let y = Math.floor((event.clientY - rect.top) / (scaleChunk / 16));
+
+            let textCoord = document.getElementById("selCoord");
+            textCoord.textContent=`${x}; ${y}`;
+            document.getElementById("goToCoord").disabled = false;
+
+        }
+
+        function sendCoords() {
+          document.getElementById("goToCoord").disabled = true;
+          let parts = document.getElementById("selCoord").textContent.split("; ");
+          
+          let x = parseInt(parts[0]);
+          let y = parseInt(parts[1]);
+
+          sendMessage(SET_TARGET, { x: x, y: y });
+        }
+
+        let canvasElem = document.getElementById("canvasMap");
+
+        canvasElem.addEventListener("mousedown", function (e) {
+            getMousePosition(canvasElem, e);
+        }); 
 
     </script>
 </body>

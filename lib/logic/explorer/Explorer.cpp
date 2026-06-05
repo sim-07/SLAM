@@ -1,7 +1,7 @@
 #include "Explorer.h"
 #include "Navigator.h"
 
-void Explorer::init(Navigator *n, RobotMovements *r, ServoMotor *s, LaserSensor *l, Ultrasonic *u)
+void Explorer::init(Navigator *n, RobotMovements *r, ServoMotor *s, LaserSensor *l, Ultrasonic *u, QueueHandle_t messToClient)
 {
     _nav = n;
     _rb = r;

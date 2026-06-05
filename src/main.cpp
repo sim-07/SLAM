@@ -1,16 +1,18 @@
 #include <Arduino.h>
 
-#include "RobotMovements.h"
-#include "Explorer.h"
-#include "Navigator.h"
+#include <RobotMovements.h>
+#include <Explorer.h>
+#include <Navigator.h>
 #include <WifiConn.h>
 #include <Connection.h>
+
+#include "Common.h"
 
 void leftTick();
 void rightTick();
 void initRobot();
 
-RobotMovements robotMov;
+RobotMovements rb;
 Navigator nav;
 Explorer explorer;
 WifiConn wifi;
@@ -19,12 +21,16 @@ ServoMotor servo;
 LaserSensor ls;
 Ultrasonic ultrasonic;
 
+QueueHandle_t messToClient;
+
 void TaskWeb(void *pvParameters);
 
 void setup()
 {
     Serial.begin(115200);
     // while (!Serial);
+
+    messToClient = xQueueCreate(10, sizeof(Message));
 
     initRobot();
 
@@ -42,7 +48,7 @@ void setup()
 void loop()
 {
     explorer.update();
-    robotMov.update();
+    rb.update();
     
     yield();
 }
@@ -51,10 +57,16 @@ void TaskWeb(void *pvParameters) {
     delay(500);
     
     wifi.init();
-    conn.init(nav, explorer);
+    conn.init(nav, explorer, rb, messToClient);
+
+    Message msg;
 
     for (;;) {
         conn.update();
+
+        // if (xQueueReceive(messToClient, &msg, 0) == pdTRUE) {
+        //     conn.sendMessage(msg);
+        // }
         vTaskDelay(pdMS_TO_TICKS(10));
     }
 }
@@ -74,22 +86,21 @@ void TaskWeb(void *pvParameters) {
 
 void leftTick()
 {
-    robotMov.getLeftEnc().increment();
+    rb.getLeftEnc().increment();
 }
 
 void rightTick()
 {
-    robotMov.getRightEnc().increment();
+    rb.getRightEnc().increment();
 }
 
 void initRobot()
 {
 
-    explorer.init(&nav, &robotMov, &servo, &ls, &ultrasonic);
-
-    robotMov.init(&nav);
-    robotMov.getLeftEnc().init(leftTick);
-    robotMov.getRightEnc().init(rightTick);
+    explorer.init(&nav, &rb, &servo, &ls, &ultrasonic, messToClient);
+    rb.init(&nav, messToClient);
+    rb.getLeftEnc().init(leftTick);
+    rb.getRightEnc().init(rightTick);
 
     servo.init();
 

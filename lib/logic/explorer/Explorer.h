@@ -46,7 +46,7 @@ private:
     uint16_t _currServoP;
     
 public:
-    void init(Navigator *n, RobotMovements *r, ServoMotor *s, LaserSensor *l, Ultrasonic *u);
+    void init(Navigator *n, RobotMovements *r, ServoMotor *s, LaserSensor *l, Ultrasonic *u, QueueHandle_t messToClient);
     void explore(Navigator &nav);
     void stopExploring();
     void update();

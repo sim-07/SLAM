@@ -6,13 +6,16 @@
 #include <set>
 #include <Explorer.h>
 
-void Connection::init(Navigator &nav, Explorer &exp)
+void Connection::init(Navigator &nav, Explorer &exp, RobotMovements &rb, QueueHandle_t messToClient)
 {
 	// TODO usare websocket
+
+	_messToClient = messToClient;
 
 	_map = &nav.getMap();
 
 	_nav = &nav;
+	_rb = &rb;
 	_exp = &exp;
 
 	if (!LittleFS.begin())
@@ -23,10 +26,11 @@ void Connection::init(Navigator &nav, Explorer &exp)
 
 	server.on("/api/getMap", [this]()
 			  { this->sendMap(); });
+
 	server.on("/", [this]()
 			  { this->openResource(true); });
 
-	server.on("/api/sendMessage", HTTP_POST, [this]()
+	server.on("/api/sendMessageToEsp", HTTP_POST, [this]()
 			  {
 		if (server.hasArg("plain")) {
 			String body = server.arg("plain");
@@ -52,6 +56,22 @@ void Connection::init(Navigator &nav, Explorer &exp)
 			server.send(400, "text/plain", "Body missing");
 		} });
 
+	server.on("/api/sendMessageToClient", HTTP_GET, [this]()
+			  {
+	Message msg;
+
+	if (xQueueReceive(_messToClient, &msg, 0) == pdTRUE) {
+		JsonDocument doc;
+		doc["type"] = static_cast<int>(msg.type);
+		doc["mess"] = msg.mess;
+
+		String response;
+		serializeJson(doc, response);
+		server.send(200, "application/json", response);
+	} else {
+		server.send(204, "application/json", "{}");
+	} });
+
 	server.onNotFound([this]()
 					  { this->openResource(false); });
 
@@ -66,7 +86,8 @@ void Connection::handleMessage(MessType messageType, JsonVariant bodyMessage)
 	case SET_TARGET:
 		if (bodyMessage["x"].is<int>() && bodyMessage["y"].is<int>())
 		{
-			_nav->setDestination(bodyMessage["x"], bodyMessage["y"]);
+			_rb->setCurrentState(GOTO);
+			_rb->setDestination(bodyMessage["x"], bodyMessage["y"]);
 			server.send(200, "text/plain", "Received");
 		}
 		else

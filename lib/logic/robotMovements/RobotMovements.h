@@ -7,6 +7,8 @@
 #include "Navigator.h"
 #include "Motor.h"
 
+#include "../../src/Common.h"
+
 static const uint8_t MOTOR_POWER = 150;
 
 // enum NavStatus {
@@ -20,7 +22,8 @@ enum RbState {
     MOVING_STRAIGHT,
     TURNING,
     FOLLOWING,
-    COMPLETED_ROUTE
+    COMPLETED_ROUTE,
+    GOTO
 };
 
 class RobotMovements {
@@ -35,11 +38,12 @@ class RobotMovements {
 
         RbState _currentState = IDLE_RB;
 
-        Route* _currentRoute = nullptr;
+        Route _currentRoute;
 
         int _currIndexRoute = 0;
 
-        Pos _targetCell;
+        Pos _nextCell;
+        Pos _destination;
 
         float _avgStraight = 0;
         float _avgTurn = 0;
@@ -47,6 +51,10 @@ class RobotMovements {
         float _targetAngle = 0;
 
         float normAngle(float angle);
+
+        QueueHandle_t _messToClient;
+
+        void goTo();
 
         const float _wheelDistance = 10.0;
 
@@ -58,7 +66,7 @@ class RobotMovements {
               _rightEnc(21)
         {}
 
-        void init(Navigator *n);
+        void init(Navigator *n, QueueHandle_t messToClient);
         void goStraight();
         void turn();
         void stop();
@@ -67,6 +75,7 @@ class RobotMovements {
         void update();
         void setRoute(Route &route);
         void followPath();
+        void setDestination(int16_t x, int16_t y);
 
         Encoder& getLeftEnc() { return _leftEnc; }
         Encoder& getRightEnc() { return _rightEnc; }
