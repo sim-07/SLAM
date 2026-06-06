@@ -8,11 +8,11 @@
 #include <set>
 #include "Navigator.h"
 #include "RobotMovements.h"
-#include "../../src/Common.h"
+#include "../../../src/Common.h"
 
 class Explorer;
 
-enum MessType
+enum MessTypeConn
 {
     SET_TARGET = 0,
     START_EXPLORE = 1,
@@ -24,7 +24,7 @@ class Connection
 
 private:
     WebServer server;
-    void handleMessage(MessType messageType, JsonVariant bodyMessage);
+    void handleMessage(MessTypeConn messageType, JsonVariant bodyMessage);
     void openResource(bool isRoot);
     void sendMap();
     const std::map<Pos, Chunk>* _map = nullptr;

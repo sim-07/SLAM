@@ -4,7 +4,7 @@
 
 - ULTRASUONI:
     GPIO 17: TRIG_PIN
-    PiGPIOn 16: ECHO_PIN
+    GPIO 16: ECHO_PIN (con 2.2k resistenza)
 
 - SERVO:
     GPIO 15
@@ -20,14 +20,14 @@
         GPIO 18 (Dir 2): Direzione.
 
     Motore Destro:
-        GPIO 1 (PWM): Controlla la velocità dello sbandamento a destra.
-        GPIO 2 (Dir 1): Direzione.
-        GPIO 14 (Dir 2): Direzione.
+        GPIO 19 (PWM): Controlla la velocità dello sbandamento a destra.
+        GPIO 20 (Dir 1): Direzione.
+        GPIO 21 (Dir 2): Direzione.
 
 - L298N:
-    GND esp32 s3 al GND dell'L298N
-    Morsetto 12V collegato al polo positivo del pacco batterie (quello a cui sono collegati 2 fili rossi)
-    Morsetto 5V vuoto
+    GND:STRISCIA BLU della breadboard.
+    Morsetto 12V: STRISCIA ROSSA della breadboard.
+    Morsetto 5V: STRISCIA ROSSA della breadboard.
 
 - ALIMENTAZIONE esp32
-    5V0 esp32 collegato al polo positivo del pacco batterie
+    5V0 esp32 collegato alla STRISCIA ROSSA della breadboard (a cui è collegato anche il polo positivo del pacco batterie da 4.8V)

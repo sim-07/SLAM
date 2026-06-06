@@ -7,7 +7,7 @@
 #include "Navigator.h"
 #include "Motor.h"
 
-#include "../../src/Common.h"
+#include "../../../src/Common.h"
 
 static const uint8_t MOTOR_POWER = 150;
 

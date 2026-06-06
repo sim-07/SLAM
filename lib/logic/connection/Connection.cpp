@@ -48,7 +48,7 @@ void Connection::init(Navigator &nav, Explorer &exp, RobotMovements &rb, QueueHa
 				return;
 			}
 
-			MessType messageType = doc["messageType"];
+			MessTypeConn messageType = doc["messageType"];
 			JsonVariant bodyMessage = doc["body"];
 
 			handleMessage(messageType, bodyMessage);
@@ -78,7 +78,7 @@ void Connection::init(Navigator &nav, Explorer &exp, RobotMovements &rb, QueueHa
 	server.begin();
 }
 
-void Connection::handleMessage(MessType messageType, JsonVariant bodyMessage)
+void Connection::handleMessage(MessTypeConn messageType, JsonVariant bodyMessage)
 {
 
 	switch (messageType)

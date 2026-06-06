@@ -6,26 +6,32 @@ const char *password = "slamtest";
 
 void WifiConn::init()
 {
-	WiFi.mode(WIFI_AP);
+    WiFi.disconnect(true);
+    WiFi.mode(WIFI_OFF);
+    delay(100);
 
-	IPAddress local_IP(192, 168, 1, 1);
-	IPAddress gateway(192, 168, 1, 1);
-	IPAddress subnet(255, 255, 255, 0);
+    WiFi.mode(WIFI_AP);
 
-	if (WiFi.softAPConfig(local_IP, gateway, subnet))
-	{
-		if (WiFi.softAP(ssid, password, _channel, _hidden, _maxConn))
-		{
-			Serial.print("IP: ");
-			Serial.println(WiFi.softAPIP());
-		}
-		else
-		{
-			Serial.println("Error Access Point");
-		}
-	}
-	else
-	{
-		Serial.println("Error setting IP");
-	}
+    IPAddress local_IP(192, 168, 1, 1);
+    IPAddress gateway(192, 168, 1, 1);
+    IPAddress subnet(255, 255, 255, 0);
+
+    if (WiFi.softAPConfig(local_IP, gateway, subnet))
+    {
+        if (WiFi.softAP(ssid, password, 1, _hidden, _maxConn))
+        {
+            WiFi.setTxPower(WIFI_POWER_15dBm); 
+            
+            Serial.print("Access Point Creato! IP: ");
+            Serial.println(WiFi.softAPIP());
+        }
+        else
+        {
+            Serial.println("Error Access Point");
+        }
+    }
+    else
+    {
+        Serial.println("Error setting IP");
+    }
 }
