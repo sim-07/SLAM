@@ -34,8 +34,6 @@ private:
 
     QueueHandle_t _messToClient;
 
-    bool _isExploring = false;
-
 public:
     Connection() : server(80) {}
     void init(Navigator &nav, Explorer &exp, RobotMovements &rb, QueueHandle_t messToClient);

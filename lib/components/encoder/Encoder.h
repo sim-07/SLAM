@@ -16,7 +16,7 @@ class Encoder {
         Encoder(int pin, float spaces = 20.0, float wheelDiameter = 6.5)
             : _pin(pin), _pulseCount(0), _spaces(spaces), _wheelDiameter(wheelDiameter) {}
 
-        void init(void (*ISR_callback)(void));
+        bool init(void (*ISR_callback)(void));
         void increment();
         void reset();
         

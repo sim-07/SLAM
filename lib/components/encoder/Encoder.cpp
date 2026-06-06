@@ -1,8 +1,14 @@
 #include "Encoder.h"
 
-void Encoder::init(void (*ISR_callback)(void)) {
+bool Encoder::init(void (*ISR_callback)(void)) {
     pinMode(_pin, INPUT_PULLUP);
     attachInterrupt(digitalPinToInterrupt(_pin), ISR_callback, RISING);
+
+    if (digitalRead(_pin) == LOW) {
+        return false;
+    }
+
+    return true;
 }
 
 void Encoder::increment() {

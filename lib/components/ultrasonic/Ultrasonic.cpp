@@ -1,11 +1,30 @@
 #include "Ultrasonic.h"
 
-void Ultrasonic::init()
+bool Ultrasonic::init()
 {
     pinMode(TRIG_PIN, OUTPUT);
     pinMode(ECHO_PIN, INPUT);
 
     digitalWrite(TRIG_PIN, LOW);
+
+    return test();
+}
+
+bool Ultrasonic::test()
+{
+    delay(30);
+
+    digitalWrite(TRIG_PIN, HIGH);
+    delayMicroseconds(10);
+    digitalWrite(TRIG_PIN, LOW);
+
+    long duration = pulseIn(ECHO_PIN, HIGH, 30000);
+
+    if (duration == 0) {
+        return false; 
+    } else {
+        return true;
+    }
 }
 
 float Ultrasonic::getDistance()

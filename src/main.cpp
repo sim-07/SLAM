@@ -17,7 +17,7 @@ Navigator nav;
 Explorer explorer;
 WifiConn wifi;
 Connection conn;
-ServoMotor servo;
+ServoMotor servo; 
 LaserSensor ls;
 Ultrasonic ultrasonic;
 
@@ -28,11 +28,9 @@ void TaskWeb(void *pvParameters);
 void setup()
 {
     Serial.begin(115200);
-    // while (!Serial);
+    delay(500);
 
     messToClient = xQueueCreate(10, sizeof(Message));
-
-    initRobot();
 
     xTaskCreatePinnedToCore(
         TaskWeb,   // Funzione da eseguire
@@ -43,46 +41,35 @@ void setup()
         NULL,      // Task handle
         0          // CORE 0
     );
+
+    delay(300);
+
+    initRobot();
 }
 
 void loop()
 {
     explorer.update();
     rb.update();
-    
+
     yield();
 }
 
-void TaskWeb(void *pvParameters) {
-    delay(500);
-    
+void TaskWeb(void *pvParameters)
+{
+    delay(100);
+
     wifi.init();
     conn.init(nav, explorer, rb, messToClient);
 
     Message msg;
 
-    for (;;) {
+    for (;;)
+    {
         conn.update();
-
-        // if (xQueueReceive(messToClient, &msg, 0) == pdTRUE) {
-        //     conn.sendMessage(msg);
-        // }
         vTaskDelay(pdMS_TO_TICKS(10));
     }
 }
-
-// void setup1()
-// {
-//     delay(500);
-
-//     wifi.init();
-//     conn.init(nav, explorer);
-// }
-
-// void loop1()
-// {
-//     conn.update();
-// }
 
 void leftTick()
 {
@@ -97,14 +84,44 @@ void rightTick()
 void initRobot()
 {
 
+    Message msg;
+    msg.type = INFO;
+
     explorer.init(&nav, &rb, &servo, &ls, &ultrasonic, messToClient);
     rb.init(&nav, messToClient);
-    rb.getLeftEnc().init(leftTick);
-    rb.getRightEnc().init(rightTick);
+    bool leftEncOk = rb.getLeftEnc().init(leftTick);
+    bool rightEncOk = rb.getRightEnc().init(rightTick);
 
     servo.init();
+    bool lsOk = ls.init();
+    bool uOk = ultrasonic.init();
 
-    ls.init();
+    if (!leftEncOk)
+    {
+        strncpy(msg.mess, "Left enc problem", sizeof(msg.mess) - 1);
+        msg.mess[sizeof(msg.mess) - 1] = '\0';
+        xQueueSend(messToClient, &msg, 0);
+    }
 
-    ultrasonic.init();
+    if (!rightEncOk)
+    {
+        strncpy(msg.mess, "Right enc problem", sizeof(msg.mess) - 1);
+        msg.mess[sizeof(msg.mess) - 1] = '\0';
+        xQueueSend(messToClient, &msg, 0);
+    }
+
+    if (!lsOk)
+    {
+        strncpy(msg.mess, "Laser problem", sizeof(msg.mess) - 1);
+        msg.mess[sizeof(msg.mess) - 1] = '\0';
+        xQueueSend(messToClient, &msg, 0);
+    }
+
+    if (!uOk)
+    {
+        strncpy(msg.mess, "Ultrasonic problem", sizeof(msg.mess) - 1);
+        msg.mess[sizeof(msg.mess) - 1] = '\0';
+        xQueueSend(messToClient, &msg, 0);
+    }
+    
 }

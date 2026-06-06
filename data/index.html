@@ -164,7 +164,7 @@
                 if (response.status == 200) {
                     const data = await response.json();
 
-                    document.getElementById("messFromEsp").textContent = data.mess;
+                    document.getElementById("messFromEsp").textContent += ` ${data.mess} `;
                 }
                 
             } catch (error) {

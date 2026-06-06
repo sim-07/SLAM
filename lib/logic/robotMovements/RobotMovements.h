@@ -60,10 +60,10 @@ class RobotMovements {
 
     public:
         RobotMovements()
-            : _leftMotor(6, 7, 8),
-              _rightMotor(9, 10, 11),
-              _leftEnc(20),
-              _rightEnc(21)
+            : _leftMotor(7, 18, 6),
+              _rightMotor(20, 21, 19),
+              _leftEnc(4),
+              _rightEnc(5)
         {}
 
         void init(Navigator *n, QueueHandle_t messToClient);

@@ -24,7 +24,6 @@ void Explorer::update()
     {
     case START_EXPLORING:
         _firstPos = _nav->getPos();
-        _isExploring = true;
         _currentState = SCAN;
         break;
 
@@ -43,7 +42,6 @@ void Explorer::update()
         }
         else
         {
-            _isExploring = false;
             Route rHome = _nav->calcRoute(_firstPos.x, _firstPos.y);
             _currentState = COMPLETED;
             _rb->setRoute(rHome);

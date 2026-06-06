@@ -22,7 +22,7 @@ void WifiConn::init()
         {
             WiFi.setTxPower(WIFI_POWER_15dBm); 
             
-            Serial.print("Access Point Creato! IP: ");
+            Serial.print("AP created. IP: ");
             Serial.println(WiFi.softAPIP());
         }
         else

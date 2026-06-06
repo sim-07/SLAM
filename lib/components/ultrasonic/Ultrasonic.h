@@ -10,9 +10,11 @@ static const uint16_t MAX_DISTANCE = 400;
 
 class Ultrasonic
 {
+    private:
+        bool test();
 
     public:
-        void init();
+        bool init();
         float getDistance();
 };
 

@@ -3,7 +3,8 @@
 void ServoMotor::init() {
     _internalServo.attach(SERVO_PIN);
     
-    moveToAngle(5);
+    _internalServo.write(5);
+    _currentAngle = 5;
 }
 
 void ServoMotor::moveToAngle(int angle) {

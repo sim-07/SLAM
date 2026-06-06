@@ -21,7 +21,7 @@ void Connection::init(Navigator &nav, Explorer &exp, RobotMovements &rb, QueueHa
 	if (!LittleFS.begin())
 	{
 		Serial.println("LittleFS error");
-		return;
+		//return;
 	}
 
 	server.on("/api/getMap", [this]()
@@ -88,7 +88,7 @@ void Connection::handleMessage(MessTypeConn messageType, JsonVariant bodyMessage
 		{
 			_rb->setCurrentState(GOTO);
 			_rb->setDestination(bodyMessage["x"], bodyMessage["y"]);
-			server.send(200, "text/plain", "Received");
+			server.send(200, "text/plain", "Received SET_TARGET");
 		}
 		else
 		{
@@ -97,20 +97,16 @@ void Connection::handleMessage(MessTypeConn messageType, JsonVariant bodyMessage
 		break;
 
 	case START_EXPLORE:
-		if (!_isExploring)
-		{
-			_exp->setCurrentState(START_EXPLORING);
-			server.send(200, "text/plain", "Received");
-		}
+
+		_exp->setCurrentState(START_EXPLORING);
+		server.send(200, "text/plain", "Received START_EXPLORE");
 
 		break;
 
 	case STOP_EXPLORE:
-		if (_isExploring)
-		{
-			_exp->setCurrentState(COMPLETED);
-			server.send(200, "text/plain", "Received");
-		}
+
+		_exp->setCurrentState(COMPLETED);
+		server.send(200, "text/plain", "Received STOP_EXPLORE");
 
 		break;
 	}

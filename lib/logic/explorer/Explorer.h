@@ -51,8 +51,6 @@ public:
     void stopExploring();
     void update();
     void setCurrentState(ExpState currState);
-
-    bool _isExploring;
 };
 
 #endif
