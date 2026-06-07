@@ -5,6 +5,8 @@ LaserSensor::LaserSensor() {
 }
 
 bool LaserSensor::init(int8_t sdaPin, int8_t sclPin) {
+    Serial.println("Init laser");
+
     bool i2c_ok = Wire.begin(sdaPin, sclPin);
 
     if (!i2c_ok) {

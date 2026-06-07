@@ -88,6 +88,7 @@ void Connection::handleMessage(MessTypeConn messageType, JsonVariant bodyMessage
 		{
 			_rb->setCurrentState(GOTO);
 			_rb->setDestination(bodyMessage["x"], bodyMessage["y"]);
+			Serial.println("Received SET_TARGET");
 			server.send(200, "text/plain", "Received SET_TARGET");
 		}
 		else

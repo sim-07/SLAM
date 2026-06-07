@@ -1,6 +1,8 @@
 #include "ServoMotor.h"
 
 void ServoMotor::init() {
+    Serial.println("Init servo");
+
     _internalServo.attach(SERVO_PIN);
     
     _internalServo.write(5);

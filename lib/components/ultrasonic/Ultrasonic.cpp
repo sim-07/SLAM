@@ -2,6 +2,8 @@
 
 bool Ultrasonic::init()
 {
+    Serial.println("Init ultrasonic");
+
     pinMode(TRIG_PIN, OUTPUT);
     pinMode(ECHO_PIN, INPUT);
 

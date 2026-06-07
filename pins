@@ -20,8 +20,8 @@
         GPIO 18 (Dir 2): Direzione.
 
     Motore Destro:
-        GPIO 19 (PWM): Controlla la velocità dello sbandamento a destra.
-        GPIO 20 (Dir 1): Direzione.
+        GPIO 1 (PWM): Controlla la velocità dello sbandamento a destra.
+        GPIO 2 (Dir 1): Direzione.
         GPIO 21 (Dir 2): Direzione.
 
 - L298N:

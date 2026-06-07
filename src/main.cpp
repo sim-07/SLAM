@@ -30,6 +30,8 @@ void setup()
     Serial.begin(115200);
     delay(500);
 
+    Serial.println("Setup");
+
     messToClient = xQueueCreate(10, sizeof(Message));
 
     xTaskCreatePinnedToCore(
@@ -84,6 +86,8 @@ void rightTick()
 void initRobot()
 {
 
+    Serial.println("Init");
+
     Message msg;
     msg.type = INFO;
 
@@ -99,6 +103,7 @@ void initRobot()
     if (!leftEncOk)
     {
         strncpy(msg.mess, "Left enc problem", sizeof(msg.mess) - 1);
+        Serial.println("Left enc problem");
         msg.mess[sizeof(msg.mess) - 1] = '\0';
         xQueueSend(messToClient, &msg, 0);
     }
@@ -106,6 +111,7 @@ void initRobot()
     if (!rightEncOk)
     {
         strncpy(msg.mess, "Right enc problem", sizeof(msg.mess) - 1);
+        Serial.println("Right enc problem");
         msg.mess[sizeof(msg.mess) - 1] = '\0';
         xQueueSend(messToClient, &msg, 0);
     }
@@ -113,6 +119,7 @@ void initRobot()
     if (!lsOk)
     {
         strncpy(msg.mess, "Laser problem", sizeof(msg.mess) - 1);
+        Serial.println("Laser problem");
         msg.mess[sizeof(msg.mess) - 1] = '\0';
         xQueueSend(messToClient, &msg, 0);
     }
@@ -120,6 +127,7 @@ void initRobot()
     if (!uOk)
     {
         strncpy(msg.mess, "Ultrasonic problem", sizeof(msg.mess) - 1);
+        Serial.println("Ultrasonic problem");
         msg.mess[sizeof(msg.mess) - 1] = '\0';
         xQueueSend(messToClient, &msg, 0);
     }
