@@ -208,23 +208,22 @@ void RobotMovements::followPath()
 
     // va dritto finché non c'è una curva
 
-    bool isDiagonal = false;
+    bool isDiagonal = _currentRoute.route[_currIndexRoute + 1].x != _currentRoute.route[_currIndexRoute].x && _currentRoute.route[_currIndexRoute + 1].y != _currentRoute.route[_currIndexRoute].y;
     float straightDis = 0;
 
     for (int i = _currIndexRoute; i < _currentRoute.route.size() - 1; i++)
     {
         float absAngleS = atan2(_currentRoute.route[i + 1].y - _currentRoute.route[i].y, _currentRoute.route[i + 1].x - _currentRoute.route[i].x) * 180.0 / PI;
-        float turnAngleS = absAngleS - absAngle; // quanto cambia in base all'inizio (se è dritto l'angolo rimane lo stesso per tutto il tragitto)
+        float diffStart = absAngleS - absAngle; // quanto cambia in base all'inizio (se è dritto l'angolo rimane lo stesso per tutto il tragitto)
 
-        turnAngleS = normAngle(turnAngleS);
+        diffStart = normAngle(diffStart);
 
-        isDiagonal = (_currentRoute.route[i + 1].x != _currentRoute.route[i].x && _currentRoute.route[i + 1].y != _currentRoute.route[i].y);
-        straightDis += isDiagonal ? 1.4142135f : 1.0f;
-
-        if (abs(turnAngleS) > 0.1)
+        if (abs(diffStart) > 0.2)
         {
             break;
         }
+
+        straightDis += isDiagonal ? 1.4142135f : 1.0f;
 
         _currIndexRoute++;
     }
